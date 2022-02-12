@@ -1,9 +1,10 @@
 import os
 import os.path as p
 import pandas as pd
+import numpy as np
 
 from sklearn.model_selection import train_test_split
-from definitions import POLIT_DATA_DIR_PATH
+from definitions import POLIT_DATA_DIR_PATH, PROC_DATA_DIR_PATH
 
 
 # relative locations
@@ -86,6 +87,8 @@ def create_validation_subset(valsize: float = 0.25, randstate: int = 22) -> None
         p.join(POLIT_DATA_DIR_PATH, 'train', 'train_combined.tsv'),
         sep='\t'
     )
+    # TODO: rework this, only one class present in val
+    # print(train_df.loc[train_df['label'] == 1].shape)
 
     tmask, vmask = train_test_split(train_df['id'].values, test_size=valsize, random_state=randstate)
 
@@ -105,23 +108,49 @@ def create_validation_subset(valsize: float = 0.25, randstate: int = 22) -> None
     )
 
 
-def sample_development_set(devsize: float = 0.1, randstate: int = 2) -> None:
+def sample_development_set(
+    dev_frac: float = 0.1,
+    y_col_name: str = 'label',
+    index_col_name: str = 'id',
+    randstate: int = 2
+) -> None:
     """
     Create subset for development process.
     """
+    dev_path = p.join(PROC_DATA_DIR_PATH, 'dev')
     train_path = p.join(POLIT_DATA_DIR_PATH, 'train')
 
     train_df = pd.read_csv(
         p.join(train_path, 'train_combined.tsv'),
         sep='\t'
     )
+    # get all classes
+    y_groups = train_df[y_col_name].unique()
 
-    _, tdmask = train_test_split(train_df['id'].values, test_size=devsize, random_state=randstate)
+    # calculate size of one class
+    size = int(train_df.shape[0]*dev_frac) // len(y_groups)
 
-    train_dev_df = train_df[train_df['id'].isin(tdmask)].reset_index(drop=True)
+    # if calculated size is larger than occurances of given class change size to number of occurances of the class
+    for label in y_groups:
+        label_count = train_df.loc[train_df[y_col_name] == label, 'id'].shape[0]
+
+        size = min(size, label_count)
+
+    train_dev_df = pd.DataFrame()
+    for label in y_groups:
+        indexes = train_df.loc[train_df[y_col_name] == label, 'id'].values
+        rand_indexes = np.random.choice(indexes, size=size, replace=False, )
+
+        train_dev_df = train_dev_df.append(train_df.loc[train_df[index_col_name].isin(rand_indexes)])
+
+    train_dev_df = train_dev_df.reset_index(drop=True)
 
     train_dev_df.to_csv(
-        p.join(train_path, 'dev.tsv'),
+        p.join(dev_path, 'dev.tsv'),
         sep='\t',
         index=False
     )
+
+
+# create_validation_subset()
+# sample_development_set()
