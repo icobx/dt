@@ -1,8 +1,11 @@
 import os
+import re
 import os.path as p
 import pandas as pd
 import numpy as np
+import requests
 
+from bs4 import BeautifulSoup
 from sklearn.model_selection import train_test_split
 from definitions import POLIT_DATA_DIR_PATH, PROC_DATA_DIR_PATH
 
@@ -152,5 +155,65 @@ def sample_development_set(
     )
 
 
+def scrape_debates():
+    """
+    Scrape The American Presidency Project (https://www.presidency.ucsb.edu) collection of presidential debates.
+    """
+    # GET DEBATES
+    base_url = 'https://www.presidency.ucsb.edu'
+    debates_url = 'people/other/presidential-candidate-debates'
+
+    pattern = re.compile('^[A-Z][a-zA-Z\.\,\ ]+:')
+    to_skip = {'participants', 'moderator', 'moderators', 'sponsor', 'sponsors', 'others'}
+    ignore_in_name = {'in', 'debate', 'Debate'}
+
+    for i in range(5):
+        r = requests.get(f'{base_url}/{debates_url}?page={i}')
+        soup = BeautifulSoup(r.content, 'html.parser')
+
+        rows = soup.find_all('div', class_='views-row')
+
+        for row in rows:
+            ts = ''.join(row.span.get('content').split('T')[0].split('-'))
+            name = '_'.join([
+                w.strip(' .,:').lower() for w in row.a.text.split()
+                if '\"' not in w and w not in ignore_in_name
+            ])
+
+            debate_url = row.a.get('href')
+            debate_r = requests.get(f'{base_url}{debate_url}')
+            debate_soup = BeautifulSoup(debate_r.content, 'html.parser')
+
+            paragraphs = debate_soup.find('div', class_='field-docs-content').find_all('p')
+
+            debate_df = pd.DataFrame()
+            for par in paragraphs:
+                sentences = nltk.sent_tokenize(par.text)
+                mtch = pattern.match(sentences[0])
+
+                if mtch is not None:
+                    end = mtch.end()
+                    tbsrc = sentences[0][:end-1]
+                    if tbsrc.lower() in to_skip:
+                        continue
+
+                    src = tbsrc
+                    sentences[0] = sentences[0][end:]
+
+                src = [src]*len(sentences)
+                label = [-1]*len(sentences)
+
+                debate_df = debate_df.append(pd.DataFrame(list(zip(src, sentences, label))))
+
+            debate_df[3] = [x for x in range(1, debate_df.shape[0]+1)]
+            debate_df[[3, 0, 1, 2]].to_csv(
+                p.join(POLIT_DATA_DIR_PATH, 'train_weak', f'{ts}_{name}.tsv'),
+                sep='\t',
+                header=False,
+                index=False
+            )
+
+
+# combine_debates()
 # create_validation_subset()
 # sample_development_set()
