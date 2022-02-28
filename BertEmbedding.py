@@ -1,8 +1,7 @@
-from lib2to3.pgen2 import token
 import torch
 
 from typing import List
-from transformers import BertTokenizer, BertModel
+from transformers import BertTokenizer, BertModel, TokenSpan
 
 
 class BertEmbedding():
@@ -28,23 +27,15 @@ class BertEmbedding():
         self.dim = self.pooling_strat_dims[pooling_strat]
 
     def __call__(self, sentences: List[str]) -> List[torch.Tensor]:
-        # add necessary tokens
-        sent_added = [f'[CLS] {s} [SEP]' for s in sentences]
         # tokenize the sentence
-        # sent_tokenized = [self.tokenizer.tokenize(s) for s in sent_added]
-        tokenizer_output_dict = self.tokenizer(sent_added, padding='longest', return_tensors='pt')
+        tokenizer_output_dict = self.tokenizer(
+            sentences,
+            add_special_tokens=True,
+            padding='longest',
+            return_tensors='pt'
+        )
         tokenizer_output_dict['token_type_ids'] = tokenizer_output_dict['token_type_ids'] + 1
-        print(tokenizer_output_dict)
-        # longest = tokenizer_output_dict['input_ids']
-        # map tokens to vocab. indices
-        # tokens_indexed = [self.tokenizer.convert_tokens_to_ids(st) for st in sent_tokenized]
-        # create segments layer
-        # segments_layer = [[1] * len(s) for s in sent_tokenized]
-        # flatten and convert to tensors
-        # TODO: .to(self.dev) might cause problems
-        # tokens_tensor = torch.tensor([[windex for idx in tokens_indexed for windex in idx]]).to(self.dev)
-        # segments_tensor = torch.tensor([[sindex for segment in segments_layer for sindex in segment]]).to(self.dev)
-        # tokens_tensor = tokenizer_output_dict['input_ids']
+
         with torch.no_grad():
             # Evaluating the model will return a different number of objects based on
             # how it's  configured in the `from_pretrained` call earlier. In this case,
@@ -52,64 +43,37 @@ class BertEmbedding():
             # hidden states from all layers. See the documentation for more details:
             # https://huggingface.co/transformers/model_doc/bert.html#bertmodel
             hidden_states = self.model(**tokenizer_output_dict)[2]
-            # Concatenate the tensors for all layers. We use `stack` here to
-            # create a new dimension in the tensor.
-            token_embeddings = torch.stack(hidden_states, dim=0)
-            # Remove dimension 1, the "batches".
-            print(token_embeddings.shape)
-            # token_embeddings = torch.squeeze(token_embeddings, dim=1)
-            # Swap dimensions 0 and 1. 0 1 2 3
-            token_embeddings = token_embeddings.permute(1, 2, 0, 3)
-            print(token_embeddings.shape)
 
-        # pooled = torch.stack([self.pooling(token) for token in token_embeddings])
-        # TODO: FIX POOLING, 4 DIMS instead of 3
-        # embeddings = []
-        # prev = 0
-        # for sent in sent_tokenized:
-        #     embeddings.append(pooled[prev:prev+len(sent), :])
-        #     prev += len(sent)
+            return self.pooling(hidden_states)
 
-        return token_embeddings
+    def pooling(self, hidden_states: torch.Tensor) -> torch.Tensor:
+        stacked = torch.stack(hidden_states, dim=0)
+        rearranged = stacked.permute(1, 2, 0, 3)
 
-    def pooling(self, token: torch.Tensor) -> torch.Tensor:
-        return self.pooling_strat_methods[self.pooling_strat](token)
+        return self.pooling_strat_methods[self.pooling_strat](rearranged)
 
     @staticmethod
-    def _ps_last_four(token: torch.Tensor) -> torch.Tensor:
-        return torch.cat((token[-1], token[-2], token[-3], token[-4]), dim=0)
+    def _ps_last_four(hidden_states: torch.Tensor) -> torch.Tensor:
+        return torch.cat(
+            (
+                hidden_states[:, :, -1, :],
+                hidden_states[:, :, -2, :],
+                hidden_states[:, :, -3, :],
+                hidden_states[:, :, -4, :]
+            ),
+            dim=2
+        )
 
     @staticmethod
-    def _ps_last_four_sum(token: torch.Tensor) -> torch.Tensor:
-        return torch.sum(token[-4:], dim=0)
+    def _ps_last_four_sum(hidden_states: torch.Tensor) -> torch.Tensor:
+        return torch.sum(hidden_states[:, :, -4:, :], dim=2)
 
     @staticmethod
-    def _ps_second_last(token: torch.Tensor) -> torch.Tensor:
-        return token[-2]
+    def _ps_second_last(hidden_states: torch.Tensor) -> torch.Tensor:
+        return hidden_states[:, :, -2, :]
 
 
-be = BertEmbedding('second_last', 'bert-base-uncased', torch.device('cpu'))
-
-# be()
-# tokenizer = be.tokenizer
-x = ['Hello, this is sentence.', 'And this is much longer sentence, because it is comprised of two']
-# # print()
-# ret = tokenizer(x, return_tensors='pt', padding='longest')
-# retep = tokenizer.encode_plus(
-#     x,
-#     add_special_tokens=True,
-#     truncation=True,
-#     padding="max_length",
-#     return_attention_mask=True,
-#     return_tensors="pt"
-# )
-
-# print(ret)
-# print()
-# print(retep)
-y = be(x)
-
-print(y)
+# be = BertEmbedding('last_four_sum', 'bert-base-uncased', torch.device('cpu'))
 
 
 # import torch
