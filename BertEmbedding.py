@@ -42,7 +42,6 @@ class BertEmbedding():
         self.pos_binarizer = None
         self.spacy_dim = 0
         if dep_features:
-            # TODO: might not be needed here
             self.spacy = spacy.load(spacy_core)
             self.spacy_dim = len(SPACY_DEP_TAGS)
 

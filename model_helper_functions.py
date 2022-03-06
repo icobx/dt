@@ -99,3 +99,9 @@ def scale(tensor, min_r=-33.0, max_r=11.0):
 #     normalised = (vector - min) / range_v
 # else:
 #     normalised = torch.zeros(vector.size())
+
+
+# x = torch.randn((2, 3))
+# print(x)
+# x = torch.tensor(x)
+# print(x)

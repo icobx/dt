@@ -1,8 +1,12 @@
+import torch
 import spacy
 import numpy as np
 
 from sklearn.preprocessing import LabelBinarizer
 from definitions import *
+from model_helper_functions import scale
+
+# TODO: remove comments
 
 
 class OneHot(object):
@@ -49,9 +53,9 @@ class OneHot(object):
 
         sid, content, label, spacied, feature = sample
 
-        spacied = spacied if len(spacied) else self.spacy(content)
+        spacied = spacied if len(spacied) else [self.spacy(content)]
 
-        tags = [getattr(t, ftwu) for t in spacied]
+        tags = [getattr(t, ftwu) for t in spacied[0]]
 
         one_hot = self.lb.transform(tags)
         one_hot = np.sum(one_hot, axis=0)
@@ -71,7 +75,7 @@ class OneHot(object):
         return sid, content, label, spacied, feature
 
 
-class FeatureSum(object):
+class Sum(object):
 
     def __init__(
         self,
@@ -115,10 +119,9 @@ class FeatureSum(object):
 
         sid, content, label, spacied, feature = sample
 
-        feature = feature if feature else []
-        spacied = spacied if spacied else self.spacy(content)
+        spacied = spacied if len(spacied) else [self.spacy(content)]
 
-        tags = [getattr(t, ftwu) for t in spacied]
+        tags = [getattr(t, ftwu) for t in spacied[0]]
 
         feat_sum = self.lb.transform(tags)
         feat_sum = np.sum(feat_sum, axis=0)
@@ -137,18 +140,27 @@ class FeatureSum(object):
         return sid, content, label, spacied, feature
 
 
-oh = FeatureSum('pos', from_selection=False)
-fs = FeatureSum('tag', from_selection=False)
-qq = FeatureSum('dep', from_selection=False)
-xx = oh([
-    0,
-    'That means only 17 percent of our budget will be for things like the military or the Department of Education or environmental protection issues.',
-    1,
-    None,
-    None
-])
+class Scale(object):
 
-print(xx)
-yy = qq(fs(xx))
+    def __init__(self) -> None:
+        pass
 
-print(yy)
+    def __call__(self, sample):
+        sid, content, label, spacied, feature = sample
+
+        feature = scale(np.asarray(feature), np.min(feature), np.max(feature))
+
+        return sid, content, label, spacied, feature
+
+
+class ToTensor(object):
+
+    def __init__(self) -> None:
+        pass
+
+    def __call__(self, sample):
+        sid, content, label, _, feature = sample
+
+        feature = feature if torch.is_tensor(feature) else torch.tensor(feature)
+
+        return sid, content, label, feature

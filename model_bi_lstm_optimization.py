@@ -16,6 +16,9 @@ from dataset_helper_functions import *
 from BiLSTM import BiLSTM
 from DebatesDataset import DebatesDataset
 from optuna.trial import TrialState
+from torchvision import transforms
+# my transforms
+from transforms import *
 
 
 data, features = {}, {}
@@ -59,7 +62,7 @@ def load_data():
             exit()
 
 
-def get_loaders():
+def get_loaders(trial):
     dev_df, test_df, train_df, val_df = data.values()
 
     dev_ids = dev_df['id'].values
@@ -76,8 +79,13 @@ def get_loaders():
 
     balanced_test = test_worthy.append(test_unworthy).reset_index(drop=True)
 
-    train_dd = DebatesDataset(data=dev_df)
-    val_dd = DebatesDataset(data=balanced_val)
+    transform_pipeline = transforms.Compose([
+        OneHot('pos'),
+        Scale(),
+        ToTensor()
+    ])
+    train_dd = DebatesDataset(data=dev_df, transform=transform_pipeline)
+    val_dd = DebatesDataset(data=balanced_val, transform=transform_pipeline)
     # test_dd = DebatesDataset(data=balanced_test)
 
     batch_size = 16
@@ -89,7 +97,7 @@ def get_loaders():
 
 
 def objective(trial):
-    train_loader, val_loader = get_loaders()
+    train_loader, val_loader = get_loaders(trial)
 
     pooling_strategy = trial.suggest_categorical('pooling_strategy', ['last_four', 'last_four_sum', 'second_last'])
     dropout = trial.suggest_float('dropout', 0.2, 0.5)
@@ -108,7 +116,7 @@ def objective(trial):
 
     for epoch in range(n_epochs):
         model.train()
-        for ids, sentences, labels in train_loader:
+        for ids, sentences, labels, features in train_loader:
             labels = labels.float().to(device)
 
             optimizer.zero_grad()
@@ -122,7 +130,7 @@ def objective(trial):
         model.eval()
         y_pred, y_true = [], []
         with torch.no_grad():
-            for val_ids, val_sentences, val_labels in val_loader:
+            for val_ids, val_sentences, val_labels, val_features in val_loader:
                 val_labels = val_labels.float().to(device)
                 output = model(val_sentences)
 

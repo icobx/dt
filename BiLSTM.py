@@ -86,8 +86,8 @@ class BiLSTM(nn.Module):
         return torch.FloatTensor(matrix), lens
 
 
-bl = BiLSTM(torch.device('cpu'), sent_level_feature_dim=9)
+# bl = BiLSTM(torch.device('cpu'))
 
-x = ['This is a sentence', 'Completely different topic we are talking about here.']
-q = [[0, 1, 1, 0, 0, 0, 1, 0, 1], [0, 1, 1, 0, 0, 0, 1, 0, 1]]
-res = bl(x, sent_level_features=q)
+# x = ['This is a sentence', 'Completely different topic we are talking about here.']
+# q = [[0, 1, 1, 0, 0, 0, 1, 0, 1], [0, 1, 1, 0, 0, 0, 1, 0, 1]]
+# res = bl(x)

@@ -59,7 +59,7 @@ class DebatesDataset(torch.utils.data.Dataset):
             index = index.tolist()
 
         sub = self.data.loc[index, :]
-        spacied = sub.spacy if 'spacy' in sub.index else []
+        spacied = [sub.spacy] if 'spacy' in sub.index else []
 
         sample = sub.id, sub.content, sub.label, spacied, []
 
