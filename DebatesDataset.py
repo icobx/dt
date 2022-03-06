@@ -9,8 +9,17 @@ from definitions import *
 
 class DebatesDataset(torch.utils.data.Dataset):
 
-    def __init__(self, data: pd.DataFrame = None, file_path: str = None) -> None:
+    def __init__(
+        self,
+        data: pd.DataFrame = None,
+        file_path: str = None,
+        transform=None,
+        # features: pd.DataFrame = None,
+        # feat_path: str = None
+    ) -> None:
         super(DebatesDataset, self).__init__()
+
+        self.transform = transform
 
         if data is not None:
             self.data = data
@@ -27,6 +36,21 @@ class DebatesDataset(torch.utils.data.Dataset):
         else:
             raise Exception("Missing one of the arguments data, file_path.")
 
+        # if features is not None:
+        #     self.data = self.data.merge(features, how='left', on='id')
+        # elif feat_path is not None:
+        #     suffix = feat_path.split('.')[-1]
+        #     if suffix == 'tsv':
+        #         features = pd.read_csv(feat_path, sep='\t', index_col=False)
+        #     elif suffix == 'csv':
+        #         features = pd.read_csv(feat_path, index_col=False)
+        #     elif suffix == 'pkl':
+        #         features = pd.read_pickle(feat_path)
+        #     else:
+        #         raise UnsupportedOperation("DebatesDataset only supports .tsv, .csv and .pkl formats.")
+
+        #     self.data = self.data.merge(features, how='left', on='id')
+
     def __len__(self):
         return self.data.shape[0]
 
@@ -34,5 +58,12 @@ class DebatesDataset(torch.utils.data.Dataset):
         if torch.is_tensor(index):
             index = index.tolist()
 
-        sub = self.data.loc[index, ['id', 'content', 'label']]
-        return sub.id, sub.content, sub.label
+        sub = self.data.loc[index, :]
+        spacied = sub.spacy if 'spacy' in sub.index else []
+
+        sample = sub.id, sub.content, sub.label, spacied, []
+
+        if self.transform:
+            return self.transform(sample)
+
+        return sample
