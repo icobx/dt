@@ -79,17 +79,27 @@ def get_loaders(trial):
 
     balanced_test = test_worthy.append(test_unworthy).reset_index(drop=True)
 
-    transform_pipeline = transforms.Compose([
-        OneHot('pos'),
-        Scale(),
-        ToTensor()
-    ])
+    # transform_pipeline = transforms.Compose([
+    #     Sum('pos', stopwords='wostop'),
+    #     Sum('tag', stopwords='wostop'),
+    #     ToBinary(6),
+    #     ToTensor()
+    # ])
+    transform_pipeline = None
+
     train_dd = DebatesDataset(data=dev_df, transform=transform_pipeline)
+
     val_dd = DebatesDataset(data=balanced_val, transform=transform_pipeline)
+
     # test_dd = DebatesDataset(data=balanced_test)
 
-    batch_size = 16
+    batch_size = trial.suggest_categorical('batch_size', [16, 32, 64, 128])
+    # batch_size = 16
     train_loader = DataLoader(train_dd, batch_size=batch_size, shuffle=True)
+    # for ids, sentences, labels, features in train_loader:
+    #     print(features.shape)
+    #     break
+    # exit()
     val_loader = DataLoader(val_dd, batch_size=batch_size, shuffle=True)
     # test_loader = DataLoader(test_dd, batch_size=batch_size, shuffle=True)
 
@@ -99,15 +109,18 @@ def get_loaders(trial):
 def objective(trial):
     train_loader, val_loader = get_loaders(trial)
 
+    # hyperparams opt
     pooling_strategy = trial.suggest_categorical('pooling_strategy', ['last_four', 'last_four_sum', 'second_last'])
     dropout = trial.suggest_float('dropout', 0.2, 0.5)
     hidden_dim = trial.suggest_categorical('hidden_dim', [64, 128, 256])
     lr = trial.suggest_float('lr', 1e-5, 1e-1, log=True)
-    # optimizer = trial.suggest_categorical("optimizer", ["MomentumSGD", "Adam", "RMSprop", "SGD"])
+    optimizer = trial.suggest_categorical("optimizer", ["MomentumSGD", "Adam", "RMSprop", "SGD"])
 
     model = BiLSTM(device=device, emb_pooling_strat=pooling_strategy, dropout=dropout, hidden_dim=hidden_dim)
     optimizer = optim.Adam(model.parameters(), lr=lr)
-    criterion = nn.BCELoss()
+
+    # TODO: create pos_weight ----> negative / positive; size of (1)
+    criterion = nn.BCEWithLogitsLoss()
     n_epochs = 10
     # exp_path = p.join(EXP_DIR_PATH, 'bi-lstm', 'optimization')
 
@@ -132,11 +145,11 @@ def objective(trial):
         with torch.no_grad():
             for val_ids, val_sentences, val_labels, val_features in val_loader:
                 val_labels = val_labels.float().to(device)
-                output = model(val_sentences)
+                pred = model(val_sentences)
 
                 # temp.extend(output.tolist())
-                output = (output > threshold).int()
-                y_pred.extend(output.tolist())
+                pred = (pred > threshold).int()
+                y_pred.extend(pred.tolist())
                 y_true.extend(val_labels.tolist())
 
         accuracy = accuracy_score(y_true, y_pred)
@@ -152,23 +165,28 @@ def objective(trial):
 
 
 load_data()
-study = optuna.create_study(direction="maximize")
-study.optimize(objective, n_trials=2, timeout=600)
+dev_df, test_df, train_df, val_df = data.values()
+
+worthy = train_df.loc[train_df['label'] == 1]
+print(worthy.shape)
+print(train_df.shape)
+# study = optuna.create_study(direction="maximize")
+# study.optimize(objective, n_trials=2, timeout=600)
 
 
-pruned_trials = study.get_trials(deepcopy=False, states=[TrialState.PRUNED])
-complete_trials = study.get_trials(deepcopy=False, states=[TrialState.COMPLETE])
+# pruned_trials = study.get_trials(deepcopy=False, states=[TrialState.PRUNED])
+# complete_trials = study.get_trials(deepcopy=False, states=[TrialState.COMPLETE])
 
-print("Study statistics: ")
-print("  Number of finished trials: ", len(study.trials))
-print("  Number of pruned trials: ", len(pruned_trials))
-print("  Number of complete trials: ", len(complete_trials))
+# print("Study statistics: ")
+# print("  Number of finished trials: ", len(study.trials))
+# print("  Number of pruned trials: ", len(pruned_trials))
+# print("  Number of complete trials: ", len(complete_trials))
 
-print("Best trial:")
-trial = study.best_trial
+# print("Best trial:")
+# trial = study.best_trial
 
-print("  Value: ", trial.value)
+# print("  Value: ", trial.value)
 
-print("  Params: ")
-for key, value in trial.params.items():
-    print("    {}: {}".format(key, value))
+# print("  Params: ")
+# for key, value in trial.params.items():
+#     print("    {}: {}".format(key, value))

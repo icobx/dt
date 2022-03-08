@@ -4,7 +4,6 @@ import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
 
-from BertEmbedding import BertEmbedding
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 from sklearn.preprocessing import LabelBinarizer
 # from definitions import
@@ -18,36 +17,23 @@ class BiLSTM(nn.Module):
         device,
         dropout=0.5,
         hidden_dim=128,
-        emb_pooling_strat='second_last',
-        emb_from_pretrained='bert-base-uncased',
-        word_level_dep_features=False,
-        word_level_triplet_features=False,
+        embedding_dim=768,
+        sent_level_feature_dim=0
     ):
         super(BiLSTM, self).__init__()
 
-        self.embedding = BertEmbedding(
-            pooling_strat=emb_pooling_strat,
-            from_pretrained=emb_from_pretrained,
-            device=device,
-            spacy_core='en_code_web_lg',
-            dep_features=word_level_dep_features,
-            triplet_features=word_level_triplet_features
-        )
-
         self.hidden_dim = hidden_dim
-        self.sent_level_feature_dim = self.embedding.spacy_dim
         self.lstm = nn.LSTM(
-            self.embedding.dim+self.embedding.spacy_dim,
+            embedding_dim,
             hidden_dim,
             num_layers=1,
             batch_first=True,
             bidirectional=True
         )
         self.drop = nn.Dropout(p=dropout)
-        self.dense = nn.Linear((2*hidden_dim)+self.embedding.spacy_dim, 1)
+        self.dense = nn.Linear((2*hidden_dim)+sent_level_feature_dim, 1)
 
-    def forward(self, sentences):
-        embeddings, lengths = self.embedding(sentences)
+    def forward(self, embeddings, lengths, sent_level_features=None):
 
         packed = pack_padded_sequence(embeddings, lengths, batch_first=True, enforce_sorted=False)
         packed_out, _ = self.lstm(packed)
@@ -57,19 +43,23 @@ class BiLSTM(nn.Module):
         out_reverse = output[:, -1, self.hidden_dim:]
         out = torch.cat((out_forward, out_reverse), 1)
 
+        out = self._append_features(out, sent_level_features, cat_dim=1)
+
         out_drop = self.drop(out)
 
         out_dense = torch.squeeze(self.dense(out_drop), 1)
-        pred = torch.sigmoid(out_dense)
 
-        return pred
+        if self.training:
+            # out_dense -> BCEWithLogitsLoss
+            return out_dense
+
+        # predicted value
+        return torch.sigmoid(out_dense)
 
     @staticmethod
     def _append_features(x, features, cat_dim):
-        if features is None:
+        if features is None or len(features) == 0:
             return x
-
-        features = torch.FloatTensor(features)
 
         return torch.cat((x, features), dim=cat_dim)
 

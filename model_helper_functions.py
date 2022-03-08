@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 # Save and Load Functions
 from definitions import FEATURE_SELECTION
@@ -86,12 +87,23 @@ def save_params(save_path, params):
 #     return feature
 
 
-def scale(tensor, min_r=-33.0, max_r=11.0):
-    range_t = max_r - min_r
+def scale(tensor, extremes_t: tuple = None, min_r=0, max_r=1):
+    tensor = tensor if torch.is_tensor(tensor) else torch.tensor(tensor)
+
+    if extremes_t is None:
+        min_t = torch.min(tensor)
+        max_t = torch.max(tensor)
+    else:
+        min_t, max_t = extremes_t
+
+    range_t = max_t - min_t
+
     if range_t > 0:
-        return (tensor - min_r) / range_t
+        std = (tensor - min_t) / range_t
+        return std * (max_r - min_r) + min_r
 
     return torch.zeros(tensor.size())
+
 
 # min_v = torch.min(vector)
 # range_v = torch.max(vector) - min_v
@@ -99,7 +111,13 @@ def scale(tensor, min_r=-33.0, max_r=11.0):
 #     normalised = (vector - min) / range_v
 # else:
 #     normalised = torch.zeros(vector.size())
+# tens = torch.randn((3, 5))
+# nump = np.array(tens)
+# print(tens)
+# print(nump)
 
+# # print(torch.min(nump))
+# print(np.min(tens))
 
 # x = torch.randn((2, 3))
 # print(x)

@@ -1,9 +1,8 @@
-from torch.utils.data.dataloader import DataLoader
-import os.path as p
-from io import UnsupportedOperation
 import torch
 import pandas as pd
+import numpy as np
 
+from io import UnsupportedOperation
 from definitions import *
 
 
@@ -59,11 +58,10 @@ class DebatesDataset(torch.utils.data.Dataset):
             index = index.tolist()
 
         sub = self.data.loc[index, :]
-        spacied = [sub.spacy] if 'spacy' in sub.index else []
-
-        sample = sub.id, sub.content, sub.label, spacied, []
 
         if self.transform:
-            return self.transform(sample)
+            spacied = [[sub.spacy] if 'spacy' in sub.index else [], False]
 
-        return sample
+            return self.transform((sub.id, sub.content, sub.label, spacied, np.array([])))
+
+        return (sub.id, sub.content, sub.label, np.array([]))
