@@ -14,7 +14,6 @@ class BiLSTM(nn.Module):
 
     def __init__(
         self,
-        device,
         dropout=0.5,
         hidden_dim=128,
         embedding_dim=768,
@@ -49,12 +48,12 @@ class BiLSTM(nn.Module):
 
         out_dense = torch.squeeze(self.dense(out_drop), 1)
 
-        if self.training:
-            # out_dense -> BCEWithLogitsLoss
-            return out_dense
+        # if self.training:
+        #     return out_dense
 
+        # out_dense -> BCEWithLogitsLoss
         # predicted value
-        return torch.sigmoid(out_dense)
+        return out_dense, torch.sigmoid(out_dense)
 
     @staticmethod
     def _append_features(x, features, cat_dim):
