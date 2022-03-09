@@ -114,7 +114,7 @@ def objective(trial):
     dropout = trial.suggest_float('dropout', 0.2, 0.5)
     hidden_dim = trial.suggest_categorical('hidden_dim', [64, 128, 256])
     lr = trial.suggest_float('lr', 1e-5, 1e-1, log=True)
-    optimizer = trial.suggest_categorical("optimizer", ["MomentumSGD", "Adam", "RMSprop", "SGD"])
+    # optimizer = trial.suggest_categorical("optimizer", ["MomentumSGD", "Adam", "RMSprop", "SGD"])
 
     model = BiLSTM(device=device, emb_pooling_strat=pooling_strategy, dropout=dropout, hidden_dim=hidden_dim)
     optimizer = optim.Adam(model.parameters(), lr=lr)

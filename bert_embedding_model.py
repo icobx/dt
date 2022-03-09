@@ -89,7 +89,8 @@ class BertEmbeddingModel():
 
         t_out['token_type_ids'] = t_out['token_type_ids'] + 1
 
-        ii, am, tti = (v.to(self.device) for v in t_out.values())
+        ii, tti, am = (v.to(self.device) for v in t_out.values())
+        print(ii)
         with torch.no_grad():
             # Evaluating the model will return a different number of objects based on
             # how it's  configured in the `from_pretrained` call earlier. In this case,
@@ -99,16 +100,16 @@ class BertEmbeddingModel():
 
             hidden_states = self.model(
                 input_ids=ii,
-                attention_mask=am,
-                token_type_ids=tti
+                token_type_ids=tti,
+                attention_mask=am
             )[2]
             pooled = self.pooling(hidden_states=hidden_states)
 
             if self.scale:
-                pooled = scale(pooled)
+                pooled = scale(pooled, extremes_t=(-33.0, 11.0))
 
             if not self.dep_features and not self.triplet_features:
-                return pooled, lengths
+                return pooled, torch.tensor(lengths).to(self.device)
 
             emb_w_feat = torch.cat(
                 (
@@ -117,7 +118,7 @@ class BertEmbeddingModel():
                 ),
                 dim=2
             )
-            return emb_w_feat, lengths+self.spacy_dim
+            return emb_w_feat, torch.tensor(lengths+self.spacy_dim).to(self.device)
 
     def create_features(self, sentences, input_ids):
         special_tokens = {'[CLS]', '[SEP]', '[PAD]'}
@@ -180,5 +181,8 @@ class BertEmbeddingModel():
         return hidden_states[:, :, -2, :]
 
 
-# be = BertEmbedding('second_last', 'bert-base-uncased', torch.device('cpu'), triplet_features=False, scale=True)
-# xx, _ = be(["That's false.", "This is a republican debate, right?"])
+be = BertEmbeddingModel('second_last', 'bert-base-uncased', torch.device('cpu'), triplet_features=False, scale=True)
+xx, _ = be(["That's false.", "This is a republican debate, right?"])
+
+print(torch.max(xx))
+print(torch.min(xx))
