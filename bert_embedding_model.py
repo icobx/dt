@@ -76,7 +76,7 @@ class BertEmbeddingModel():
         max second last:  tensor(8.0412)
         """
 
-    def __call__(self, sentences: List[str]) -> Tuple[torch.Tensor, np.ndarray]:
+    def __call__(self, sentences: List[str]) -> Tuple[torch.Tensor, torch.Tensor]:
         # tokenize the sentence
         t_out = self.tokenizer(
             sentences,
@@ -90,7 +90,6 @@ class BertEmbeddingModel():
         t_out['token_type_ids'] = t_out['token_type_ids'] + 1
 
         ii, tti, am = (v.to(self.device) for v in t_out.values())
-        print(ii)
         with torch.no_grad():
             # Evaluating the model will return a different number of objects based on
             # how it's  configured in the `from_pretrained` call earlier. In this case,
@@ -179,10 +178,3 @@ class BertEmbeddingModel():
     @staticmethod
     def _ps_second_last(hidden_states: torch.Tensor) -> torch.Tensor:
         return hidden_states[:, :, -2, :]
-
-
-be = BertEmbeddingModel('second_last', 'bert-base-uncased', torch.device('cpu'), triplet_features=False, scale=True)
-xx, _ = be(["That's false.", "This is a republican debate, right?"])
-
-print(torch.max(xx))
-print(torch.min(xx))

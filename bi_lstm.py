@@ -30,10 +30,9 @@ class BiLSTM(nn.Module):
             bidirectional=True
         )
         self.drop = nn.Dropout(p=dropout)
-        self.dense = nn.Linear((2*hidden_dim)+sent_level_feature_dim, 1)
+        self.dense = nn.Linear(2*hidden_dim+sent_level_feature_dim, 1)
 
     def forward(self, embeddings, lengths, sent_level_features=None):
-
         packed = pack_padded_sequence(embeddings, lengths, batch_first=True, enforce_sorted=False)
         packed_out, _ = self.lstm(packed)
         output, _ = pad_packed_sequence(packed_out, batch_first=True)
@@ -48,11 +47,6 @@ class BiLSTM(nn.Module):
 
         out_dense = torch.squeeze(self.dense(out_drop), 1)
 
-        # if self.training:
-        #     return out_dense
-
-        # out_dense -> BCEWithLogitsLoss
-        # predicted value
         return out_dense, torch.sigmoid(out_dense)
 
     @staticmethod
@@ -73,10 +67,3 @@ class BiLSTM(nn.Module):
             matrix[i, :lens[i], :] = emb_tensors[i]
 
         return torch.FloatTensor(matrix), lens
-
-
-# bl = BiLSTM(torch.device('cpu'))
-
-# x = ['This is a sentence', 'Completely different topic we are talking about here.']
-# q = [[0, 1, 1, 0, 0, 0, 1, 0, 1], [0, 1, 1, 0, 0, 0, 1, 0, 1]]
-# res = bl(x)
