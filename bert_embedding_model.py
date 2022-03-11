@@ -1,5 +1,3 @@
-from DebatesDataset import DebatesDataset
-from torch.utils.data.dataloader import DataLoader
 import os
 import pandas as pd
 import torch
@@ -12,6 +10,7 @@ from transformers import BertTokenizer, BertModel
 from sklearn.preprocessing import LabelBinarizer
 from definitions import SPACY_POS_TAGS, SPACY_DEP_TAGS, PROC_DATA_DIR_PATH, POLIT_DATA_DIR_PATH
 from model_helper_functions import scale
+from debates_dataset import DebatesDataset
 
 
 class BertEmbeddingModel():
@@ -31,7 +30,7 @@ class BertEmbeddingModel():
         self.device = device
 
         self.tokenizer = BertTokenizer.from_pretrained(from_pretrained)
-        self.model = BertModel.from_pretrained(from_pretrained, output_hidden_states=True).to(device)
+        self.model = BertModel.from_pretrained(from_pretrained, output_hidden_states=True)
         self.model.eval()
 
         self.scale = scale
@@ -89,19 +88,18 @@ class BertEmbeddingModel():
 
         t_out['token_type_ids'] = t_out['token_type_ids'] + 1
 
-        ii, tti, am = (v.to(self.device) for v in t_out.values())
         with torch.no_grad():
             # Evaluating the model will return a different number of objects based on
             # how it's  configured in the `from_pretrained` call earlier. In this case,
             # becase we set `output_hidden_states = True`, the third item will be the
             # hidden states from all layers. See the documentation for more details:
             # https://huggingface.co/transformers/model_doc/bert.html#bertmodel
-
             hidden_states = self.model(
-                input_ids=ii,
-                token_type_ids=tti,
-                attention_mask=am
-            )[2]
+                input_ids=t_out['input_ids'].to(self.device),
+                token_type_ids=t_out['token_type_ids'].to(self.device),
+                attention_mask=t_out['attention_mask'].to(self.device)
+            )['hidden_states']
+
             pooled = self.pooling(hidden_states=hidden_states)
 
             if self.scale:

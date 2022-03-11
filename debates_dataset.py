@@ -13,8 +13,6 @@ class DebatesDataset(torch.utils.data.Dataset):
         data: pd.DataFrame = None,
         file_path: str = None,
         transform=None,
-        # features: pd.DataFrame = None,
-        # feat_path: str = None
     ) -> None:
         super(DebatesDataset, self).__init__()
 
@@ -34,21 +32,6 @@ class DebatesDataset(torch.utils.data.Dataset):
                 raise UnsupportedOperation("DebatesDataset only supports .tsv, .csv and .pkl formats.")
         else:
             raise Exception("Missing one of the arguments data, file_path.")
-
-        # if features is not None:
-        #     self.data = self.data.merge(features, how='left', on='id')
-        # elif feat_path is not None:
-        #     suffix = feat_path.split('.')[-1]
-        #     if suffix == 'tsv':
-        #         features = pd.read_csv(feat_path, sep='\t', index_col=False)
-        #     elif suffix == 'csv':
-        #         features = pd.read_csv(feat_path, index_col=False)
-        #     elif suffix == 'pkl':
-        #         features = pd.read_pickle(feat_path)
-        #     else:
-        #         raise UnsupportedOperation("DebatesDataset only supports .tsv, .csv and .pkl formats.")
-
-        #     self.data = self.data.merge(features, how='left', on='id')
 
     def __len__(self):
         return self.data.shape[0]
