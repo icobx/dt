@@ -40,7 +40,6 @@ class BiLSTM(nn.Module):
         out_reverse = output[:, 0, self.hidden_dim:]
 
         out = torch.cat((out_forward, out_reverse), 1)
-        # print(out)
         out = self._append_features(out, None, cat_dim=1)
 
         out_drop = self.drop(out)

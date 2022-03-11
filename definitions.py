@@ -1,13 +1,13 @@
 import os.path as p
 
 # home
-DATA_DIR_PATH = '/Users/icobx/Documents/skola/dp/code/data'
-EXP_DIR_PATH = p.abspath('./exp')
-LOG_DIR_PATH = p.abspath('./log')
+# DATA_DIR_PATH = '/Users/icobx/Documents/skola/dp/code/data'
+# EXP_DIR_PATH = p.abspath('./exp')
+# LOG_DIR_PATH = p.abspath('./log')
 
 # gpu
-# DATA_DIR_PATH = '/home/jovyan/sharedstorage/s12b3v/dp/data'
-# EXP_DIR_PATH = '/home/jovyan/sharedstorage/s12b3v/dp/exp'
+DATA_DIR_PATH = '/home/jovyan/sharedstorage/s12b3v/dp/data'
+EXP_DIR_PATH = '/home/jovyan/sharedstorage/s12b3v/dp/exp'
 # LOG_DIR_PATH = p.abspath('./log')
 
 
