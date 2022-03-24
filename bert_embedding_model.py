@@ -87,7 +87,7 @@ class BertEmbeddingModel():
         lengths = np.asarray([am_sum[i].item() for i in range(len(sentences))])
 
         t_out['token_type_ids'] = t_out['token_type_ids'] + 1
-        
+
         with torch.no_grad():
             # Evaluating the model will return a different number of objects based on
             # how it's  configured in the `from_pretrained` call earlier. In this case,
@@ -101,6 +101,11 @@ class BertEmbeddingModel():
 #                 attention_mask=t_out['attention_mask'].to(self.device)
 #             )['hidden_states']
             hidden_states = self.model(**t_out)['hidden_states']
+            # print(len(hidden_states))
+            # print(hidden_states['last_hidden_state'].size())
+            # print(hidden_states['hidden_states'].size())
+            # exit()
+            # ['hidden_states']
 
             pooled = self.pooling(hidden_states=hidden_states)
 
@@ -178,3 +183,9 @@ class BertEmbeddingModel():
     @staticmethod
     def _ps_second_last(hidden_states: torch.Tensor) -> torch.Tensor:
         return hidden_states[:, :, -2, :]
+
+
+veta = 'this is a sentence.'
+bem = BertEmbeddingModel()
+
+xx = bem([veta])
