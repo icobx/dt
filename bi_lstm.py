@@ -8,6 +8,11 @@ from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
 
 class Attention(nn.Module):
+    """
+    Attention module inspired by:
+    - https://discuss.pytorch.org/t/self-attention-on-words-and-masking/5671
+    - https://www.kaggle.com/code/dannykliu/lstm-with-attention-clr-in-pytorch/notebook
+    """
 
     def __init__(self, hidden_dim, device):
         super(Attention, self).__init__()
@@ -17,9 +22,10 @@ class Attention(nn.Module):
         self.attention_weights = nn.Parameter(torch.Tensor(1, hidden_dim), requires_grad=True)
         self.relu = nn.ReLU()
 
-        stdv = 1.0 / np.sqrt(self.hidden_dim)
-        for weight in self.attention_weights:
-            nn.init.uniform_(weight, -stdv, stdv)
+        # stdv = 1.0 / np.sqrt(self.hidden_dim)
+        # for weight in self.attention_weights:
+        #     nn.init.uniform_(weight, -stdv, stdv)
+        nn.init.xavier_uniform_(self.attention_weights)
 
     def get_mask(self):
         pass
