@@ -6,7 +6,7 @@ Source: https://towardsdatascience.com/structuring-jupyter-notebooks-for-fast-an
 import logging
 
 
-def run(logger_name, log_file, stream_level='ERROR'):
+def run(logger_name, log_file, stream_level='ERROR', do_print=False):
     stream_level = {
         'DEBUG': logging.DEBUG,
         'INFO': logging.INFO,
@@ -34,7 +34,8 @@ def run(logger_name, log_file, stream_level='ERROR'):
 
     # add the handlers to the logger
     logger.addHandler(fh)
-    logger.addHandler(ch)
+    if do_print:
+        logger.addHandler(ch)
 
     def modified_print(*args):
         s = ' '.join([str(a) for a in args])

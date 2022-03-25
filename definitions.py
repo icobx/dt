@@ -7,8 +7,8 @@ LOG_DIR_PATH = p.abspath('./log')
 
 # gpu
 # DATA_DIR_PATH = '/home/jovyan/sharedstorage/s12b3v/dp/data'
-# EXP_DIR_PATH = '/home/jovyan/sharedstorage/s12b3v/dp/exp'
-# LOG_DIR_PATH = p.abspath('./log')
+# EXP_DIR_PATH = '/home/jovyan/sharedstorage/s12b3v/dp/dt/exp'
+# LOG_DIR_PATH = '/home/jovyan/sharedstorage/s12b3v/dp/dt/log'
 
 
 PROC_DATA_DIR_PATH = p.join(DATA_DIR_PATH, 'dt-processed')

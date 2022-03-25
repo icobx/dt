@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import math
 # Save and Load Functions
 from definitions import FEATURE_SELECTION
 
@@ -104,7 +105,26 @@ def scale(tensor, extremes_t: tuple = None, min_r=0, max_r=1):
 
     return torch.zeros(tensor.size())
 
+def range_inc(start, stop, step, inc, inc_operator='*'):
+    i = start
+    while i < stop:
+        yield i
+        i += step
+        if inc_operator == '*':
+            step *= inc
+        else:
+            step += inc
 
+def round_to_first_non_zero(nums, add_to_dist=0):
+    for i in range(len(nums)):
+        x = nums[i]
+        if x == 0.0:
+            continue
+        dist = abs(round(math.log10(abs(x)))) + add_to_dist
+        mp = 10**dist
+        nums[i] = int(x * mp) / mp
+    
+    return nums
 # min_v = torch.min(vector)
 # range_v = torch.max(vector) - min_v
 # if range_v > 0:
