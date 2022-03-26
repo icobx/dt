@@ -1,9 +1,8 @@
-from zmq import device
-from bert_embedding_model import BertEmbeddingModel
 import torch
 import torch.nn as nn
 import numpy as np
 
+# from bert_embedding_model import BertEmbeddingModel
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
 
@@ -19,7 +18,7 @@ class Attention(nn.Module):
 
         self.hidden_dim = hidden_dim
         self.device = device
-        self.attention_weights = nn.Parameter(torch.Tensor(1, hidden_dim), requires_grad=True)
+        self.attention_weights = nn.Parameter(torch.Tensor(1, hidden_dim), requires_grad=True).to(device)
         self.relu = nn.ReLU()
 
         # stdv = 1.0 / np.sqrt(self.hidden_dim)
@@ -83,7 +82,8 @@ class BiLSTM(nn.Module):
         hidden_dim=128,
         embedding_dim=768,
         sent_level_feature_dim=0,
-        device=torch.device('cpu')
+        device=torch.device('cpu'),
+        w_seq=False
     ):
         super(BiLSTM, self).__init__()
 
@@ -99,6 +99,13 @@ class BiLSTM(nn.Module):
         )
         self.attention = Attention(hidden_dim=2*hidden_dim, device=device)
         self.drop = nn.Dropout(p=dropout)
+        self.seq = None
+        if w_seq:
+            self.seq = nn.Sequential(
+                nn.Linear(2*hidden_dim+sent_level_feature_dim, 2*hidden_dim+sent_level_feature_dim),
+                nn.BatchNorm1d(2*hidden_dim+sent_level_feature_dim),
+                nn.ReLU()
+            )
         self.dense = nn.Linear(2*hidden_dim+sent_level_feature_dim, 1)
 
     def forward(self, embeddings, lengths, sent_level_features=None):
@@ -113,10 +120,14 @@ class BiLSTM(nn.Module):
         out = torch.cat((out_forward, out_reverse), 1)
         out = self._append_features(out, sent_level_features, cat_dim=1)
 
-        out_drop = self.drop(out)
-        out_dense = self.dense(out_drop)
+        if self.seq:
+            out = self.drop(out)
+            out = self.seq(out)
+           
+        out = self.drop(out)
+        out = self.dense(out)
 
-        return torch.squeeze(out_dense, 1)
+        return torch.squeeze(out, 1)
 
     @staticmethod
     def _append_features(x, features, cat_dim):

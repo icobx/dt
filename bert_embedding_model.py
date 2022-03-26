@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 import torch
-import spacy
+# import spacy
 import nltk
 import numpy as np
 
@@ -43,17 +43,17 @@ class BertEmbeddingModel():
         self.dep_binarizer = None
         self.pos_binarizer = None
         self.spacy_dim = 0
-        if dep_features:
-            self.spacy = spacy.load(spacy_core)
-            self.spacy_dim = len(SPACY_DEP_TAGS)
+#         if dep_features:
+#             self.spacy = spacy.load(spacy_core)
+#             self.spacy_dim = len(SPACY_DEP_TAGS)
 
-            self.dep_binarizer = LabelBinarizer()
-            self.dep_binarizer.fit(SPACY_DEP_TAGS)
+#             self.dep_binarizer = LabelBinarizer()
+#             self.dep_binarizer.fit(SPACY_DEP_TAGS)
 
-            if triplet_features:
-                self.spacy_dim += 2*len(SPACY_POS_TAGS)
-                self.pos_binarizer = LabelBinarizer()
-                self.pos_binarizer.fit(SPACY_POS_TAGS)
+#             if triplet_features:
+#                 self.spacy_dim += 2*len(SPACY_POS_TAGS)
+#                 self.pos_binarizer = LabelBinarizer()
+#                 self.pos_binarizer.fit(SPACY_POS_TAGS)
 
         self.stopwords = set(nltk.corpus.stopwords.words('english'))
 
@@ -185,7 +185,7 @@ class BertEmbeddingModel():
         return hidden_states[:, :, -2, :]
 
 
-veta = 'this is a sentence.'
-bem = BertEmbeddingModel()
+# veta = 'this is a sentence.'
+# bem = BertEmbeddingModel()
 
-xx = bem([veta])
+# xx = bem([veta])
