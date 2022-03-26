@@ -8,7 +8,7 @@ import numpy as np
 from typing import List, Tuple
 from transformers import BertTokenizer, BertModel
 from sklearn.preprocessing import LabelBinarizer
-from definitions import SPACY_POS_TAGS, SPACY_DEP_TAGS, PROC_DATA_DIR_PATH, POLIT_DATA_DIR_PATH
+from definitions import SPACY_POS_TAGS, SPACY_DEP_TAGS, PROC_DATA_DIR_PATH, POLIT_DATA_DIR_PATH, BERT_MODEL_PATH
 from model_helper_functions import scale
 from debates_dataset import DebatesDataset
 
@@ -29,8 +29,8 @@ class BertEmbeddingModel():
         self.pooling_strat = pooling_strat
         self.device = device
 
-        self.tokenizer = BertTokenizer.from_pretrained(from_pretrained)
-        self.model = BertModel.from_pretrained(from_pretrained, output_hidden_states=True).to(device)
+        self.tokenizer = BertTokenizer.from_pretrained(from_pretrained, cache_dir=BERT_MODEL_PATH)
+        self.model = BertModel.from_pretrained(from_pretrained, output_hidden_states=True, cache_dir=BERT_MODEL_PATH).to(device)
         self.model.eval()
 
         self.scale = scale
