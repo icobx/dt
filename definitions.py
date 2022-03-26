@@ -4,11 +4,13 @@ import os.path as p
 # DATA_DIR_PATH = '/Users/icobx/Documents/skola/dp/code/data'
 # EXP_DIR_PATH = p.abspath('./exp')
 # LOG_DIR_PATH = p.abspath('./log')
+# SBERT_MODEL_PATH = None
 
 # gpu
 DATA_DIR_PATH = '/home/jovyan/sharedstorage/s12b3v/dp/data'
 EXP_DIR_PATH = '/home/jovyan/sharedstorage/s12b3v/dp/dt/exp'
 LOG_DIR_PATH = '/home/jovyan/sharedstorage/s12b3v/dp/dt/log'
+SBERT_MODEL_PATH = '/home/jovyan/sharedstorage/s12b3v/dp/dt/sbert_models'
 
 
 PROC_DATA_DIR_PATH = p.join(DATA_DIR_PATH, 'dt-processed')
