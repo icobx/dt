@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 import torch
-# import spacy
+import spacy
 import nltk
 import numpy as np
 
@@ -30,7 +30,8 @@ class BertEmbeddingModel():
         self.device = device
 
         self.tokenizer = BertTokenizer.from_pretrained(from_pretrained, cache_dir=BERT_MODEL_PATH)
-        self.model = BertModel.from_pretrained(from_pretrained, output_hidden_states=True, cache_dir=BERT_MODEL_PATH).to(device)
+        self.model = BertModel.from_pretrained(
+            from_pretrained, output_hidden_states=True, cache_dir=BERT_MODEL_PATH).to(device)
         self.model.eval()
 
         self.scale = scale
@@ -43,17 +44,17 @@ class BertEmbeddingModel():
         self.dep_binarizer = None
         self.pos_binarizer = None
         self.spacy_dim = 0
-#         if dep_features:
-#             self.spacy = spacy.load(spacy_core)
-#             self.spacy_dim = len(SPACY_DEP_TAGS)
+        if dep_features:
+            self.spacy = spacy.load(spacy_core)
+            self.spacy_dim = len(SPACY_DEP_TAGS)
 
-#             self.dep_binarizer = LabelBinarizer()
-#             self.dep_binarizer.fit(SPACY_DEP_TAGS)
+            self.dep_binarizer = LabelBinarizer()
+            self.dep_binarizer.fit(SPACY_DEP_TAGS)
 
-#             if triplet_features:
-#                 self.spacy_dim += 2*len(SPACY_POS_TAGS)
-#                 self.pos_binarizer = LabelBinarizer()
-#                 self.pos_binarizer.fit(SPACY_POS_TAGS)
+            if triplet_features:
+                self.spacy_dim += 2*len(SPACY_POS_TAGS)
+                self.pos_binarizer = LabelBinarizer()
+                self.pos_binarizer.fit(SPACY_POS_TAGS)
 
         self.stopwords = set(nltk.corpus.stopwords.words('english'))
 
@@ -95,17 +96,8 @@ class BertEmbeddingModel():
             # hidden states from all layers. See the documentation for more details:
             # https://huggingface.co/transformers/model_doc/bert.html#bertmodel
             t_out = {k: tensor.to(self.device) for k, tensor in t_out.items()}
-#             hidden_states = self.model(
-#                 input_ids=t_out['input_ids'].to(self.device),
-#                 token_type_ids=t_out['token_type_ids'].to(self.device),
-#                 attention_mask=t_out['attention_mask'].to(self.device)
-#             )['hidden_states']
+
             hidden_states = self.model(**t_out)['hidden_states']
-            # print(len(hidden_states))
-            # print(hidden_states['last_hidden_state'].size())
-            # print(hidden_states['hidden_states'].size())
-            # exit()
-            # ['hidden_states']
 
             pooled = self.pooling(hidden_states=hidden_states)
 

@@ -1,4 +1,6 @@
 import torch
+import nltk
+import spacy
 import pandas as pd
 import numpy as np
 
@@ -43,8 +45,6 @@ class DebatesDataset(torch.utils.data.Dataset):
         sub = self.data.loc[index, :]
 
         if self.transform:
-            spacied = [[sub.spacy] if 'spacy' in sub.index else [], False]
-
-            return self.transform((sub.id, sub.content, sub.label, spacied, np.array([])))
+            return self.transform((sub.id, sub.content, sub.label, [], np.array([])))
 
         return (sub.id, sub.content, sub.label, np.array([]))
