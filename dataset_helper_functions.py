@@ -22,19 +22,25 @@ from definitions import POLIT_DATA_DIR_PATH, PROC_DATA_DIR_PATH
 # validation: val | random seed 22
 # test: test/test_combined
 
-def combine_debates() -> None:
+def combine_debates(splits=['test', 'train'], prepend_title='') -> None:
     """
     Combines debates from multiple .tsv files into one. Ids for each record are created by concatenating date of the
     debate and index of the record.
     """
+    if len(prepend_title):
+        prepend_title = f'{prepend_title}_'
 
-    data_paths = [
-        p.join(POLIT_DATA_DIR_PATH, 'test'),
-        p.join(POLIT_DATA_DIR_PATH, 'train')
-    ]
+    data_paths = [p.join(POLIT_DATA_DIR_PATH, s) for s in splits]
+    # [
+    #     p.join(POLIT_DATA_DIR_PATH, 'test'),
+    #     p.join(POLIT_DATA_DIR_PATH, 'train')
+    # ]
+    is_weak = 'train_weak' in splits
 
     for path in data_paths:
         header = ['i', 'src', 'content', 'label']
+        if is_weak:
+            header.append('score')
 
         df_combined = pd.DataFrame()
         x = 0
@@ -67,8 +73,10 @@ def combine_debates() -> None:
                 axis='columns'
             )
 
-            header_rear = ['i', 'id', 'src', 'content', 'label']
-            df = df[header_rear]
+            header_w_id = ['i', 'id', 'src', 'content', 'label']
+            if is_weak:
+                header_w_id.append('score')
+            df = df[header_w_id]
 
             df_combined = df_combined.append(
                 df,
@@ -76,13 +84,13 @@ def combine_debates() -> None:
             )
 
         df_combined.to_csv(
-            p.join(path, f'{path.split(os.sep)[-1]}_combined.tsv'),
+            p.join(path, f'{prepend_title}{path.split(os.sep)[-1]}_combined.tsv'),
             sep='\t',
             index=False,
         )
 
 
-def create_validation_subset(valsize: float = 0.25, randstate: int = 22) -> None:
+def create_validation_subset(valsize: float = 0.25, randstate: int = 22, should_return=False) -> None:
     """
     Creates validation data by splitting training data. Ratio training/validation: 1-valsize/valsize.
     Can only be ran after combining of debates.
@@ -99,6 +107,9 @@ def create_validation_subset(valsize: float = 0.25, randstate: int = 22) -> None
     val_df = train_df[train_df['id'].isin(vmask)].reset_index(drop=True)
 
     train_df = train_df[train_df['id'].isin(tmask)].reset_index(drop=True)
+
+    if should_return:
+        return train_df, val_df
 
     val_df.to_csv(
         p.join(POLIT_DATA_DIR_PATH, 'val', 'val_combined.tsv'),
