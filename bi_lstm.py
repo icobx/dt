@@ -109,6 +109,9 @@ class BiLSTM(nn.Module):
         self.dense = nn.Linear(2*hidden_dim+sent_level_feature_dim, 1)
 
     def forward(self, embeddings, lengths, sent_level_features=None):
+#         lengths = lengths.cpu()
+#         print(lengths.size())
+#         print(sent_level_features.size())
         packed = pack_padded_sequence(embeddings, lengths, batch_first=True, enforce_sorted=False)
         packed_out, _ = self.lstm(packed)
         output, lens = pad_packed_sequence(packed_out, batch_first=True)

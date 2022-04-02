@@ -7,8 +7,8 @@ import numpy as np
 
 from typing import List, Tuple
 from transformers import BertTokenizer, BertModel
-from sklearn.preprocessing import LabelBinarizer
-from definitions import SPACY_POS_TAGS, SPACY_DEP_TAGS, PROC_DATA_DIR_PATH, POLIT_DATA_DIR_PATH, BERT_MODEL_PATH
+from sklearn.preprocessing import OneHotEncoder
+from definitions import *
 from model_helper_functions import scale
 from debates_dataset import DebatesDataset
 
@@ -29,9 +29,9 @@ class BertEmbeddingModel():
         self.pooling_strat = pooling_strat
         self.device = device
 
-        self.tokenizer = BertTokenizer.from_pretrained(from_pretrained, cache_dir=BERT_MODEL_PATH)
+        self.tokenizer = BertTokenizer.from_pretrained(from_pretrained)
         self.model = BertModel.from_pretrained(
-            from_pretrained, output_hidden_states=True, cache_dir=BERT_MODEL_PATH).to(device)
+            from_pretrained, output_hidden_states=True).to(device)
         self.model.eval()
 
         self.scale = scale
@@ -41,21 +41,23 @@ class BertEmbeddingModel():
         self.dep_features = dep_features
         self.triplet_features = triplet_features
         self.spacy = None
-        self.dep_binarizer = None
-        self.pos_binarizer = None
+        self.dep_enc = None
+        self.pos_enc = None
         self.spacy_dim = 0
         if dep_features:
-            self.spacy = spacy.load(spacy_core)
+#             spacy.prefer_gpu()
+            self.spacy = spacy.load(os.path.join(SPACY_MODEL_PATH, spacy_core))
             self.spacy_dim = len(SPACY_DEP_TAGS)
 
-            self.dep_binarizer = LabelBinarizer()
-            self.dep_binarizer.fit(SPACY_DEP_TAGS)
+            self.dep_enc = OneHotEncoder()
+            self.dep_enc.fit(np.array(SPACY_DEP_TAGS).reshape(-1, 1))
 
             if triplet_features:
                 self.spacy_dim += 2*len(SPACY_POS_TAGS)
-                self.pos_binarizer = LabelBinarizer()
-                self.pos_binarizer.fit(SPACY_POS_TAGS)
-
+                self.pos_enc = OneHotEncoder()
+                self.pos_enc.fit(np.array(SPACY_POS_TAGS).reshape(-1, 1))
+                
+        nltk.download('punkt')
         self.stopwords = set(nltk.corpus.stopwords.words('english'))
 
         self.pooling_strat_methods = {
@@ -105,6 +107,7 @@ class BertEmbeddingModel():
                 pooled = scale(pooled, extremes_t=(-33.0, 11.0))
 
             if not self.dep_features and not self.triplet_features:
+#                 print(torch.tensor(lengths+self.spacy_dim).to(self.device))
                 return pooled, torch.tensor(lengths).to(self.device)
 
             emb_w_feat = torch.cat(
@@ -114,6 +117,7 @@ class BertEmbeddingModel():
                 ),
                 dim=2
             )
+            
             return emb_w_feat, torch.tensor(lengths+self.spacy_dim).to(self.device)
 
     def create_features(self, sentences, input_ids):
@@ -134,11 +138,15 @@ class BertEmbeddingModel():
                     encoded.append([0]*self.spacy_dim)
 
                 elif spacy_ind < len(spacied):
-                    word_ft = self.dep_binarizer.transform([spacied[spacy_ind].dep_]).tolist()[0]
+                    deps = np.array([spacied[spacy_ind].dep_]).reshape(-1, 1)
+                    word_ft = self.dep_enc.transform(deps).toarray()[0]
 
                     if self.triplet_features:
-                        token_pos = self.pos_binarizer.transform([spacied[spacy_ind].pos_]).tolist()[0]
-                        head_pos = self.pos_binarizer.transform([spacied[spacy_ind].head.pos_]).tolist()[0]
+                        token_poses = np.array([spacied[spacy_ind].pos_]).reshape(-1, 1)
+                        head_poses = np.array([spacied[spacy_ind].head.pos_]).reshape(-1, 1)
+                        
+                        token_pos = self.pos_enc.transform(token_poses).toarray()[0]
+                        head_pos = self.pos_enc.transform(head_poses).toarray()[0]
                         word_ft = [*token_pos, *word_ft, *head_pos]
 
                     encoded.append(word_ft)
@@ -148,7 +156,7 @@ class BertEmbeddingModel():
 
             features.append(encoded)
 
-        return torch.tensor(features).to(self.device)
+        return torch.tensor(features).float().to(self.device)
 
     def pooling(self, hidden_states: torch.Tensor) -> torch.Tensor:
         stacked = torch.stack(hidden_states, dim=0)

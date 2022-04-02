@@ -243,6 +243,41 @@ def scrape_n_label(label_threshold: float = 0.5) -> None:
                 header=False,
                 index=False
             )
+            
+def filter_by_length(df, length=3):
+    """
+    Drop sentences of length `length` or shorter.
+    """
+    import nltk
+    def get_length(x):
+        return len(nltk.word_tokenize(x))
+   
+    df['length'] = df['content'].apply(get_length)
+    
+    return df[df['length'] > length].reset_index(drop=True)
+
+
+def pad_features(dataset):
+    max_len = 0
+    for _, _, _, feature in dataset:
+        max_len = max(len(feature), max_len)
+        
+    for i in range(len(dataset)):
+        a, b, c, d = dataset[i]
+        feat_len = len(d)
+        if feat_len < max_len:
+            diff = max_len - feat_len
+            print('diff', diff)
+            
+            padding = torch.zeros((diff, ))
+            print('padding', padding)
+            d = torch.cat((padding, d), dim=0)
+            print('feature;', d)
+        
+        dataset[i] = (a, b, c, d)
+        print(f'dataset at {i}', dataset[i])
+    return dataset
+            
 
 
 # combine_debates()

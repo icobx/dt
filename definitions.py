@@ -8,14 +8,15 @@ SBERT_MODEL_PATH = None
 BERT_MODEL_PATH = None
 
 # gpu
-# DATA_DIR_PATH = '/home/jovyan/sharedstorage/s12b3v/dp/data'
-# EXP_DIR_PATH = '/home/jovyan/sharedstorage/s12b3v/dp/dt/exp'
-# LOG_DIR_PATH = '/home/jovyan/sharedstorage/s12b3v/dp/dt/log'
-# BERT_MODEL_PATH = '/home/jovyan/sharedstorage/s12b3v/dp/dt/bert_models'
-# SBERT_MODEL_PATH = '/home/jovyan/sharedstorage/s12b3v/dp/dt/sbert_models'
-
+DATA_DIR_PATH = '/home/jovyan/sharedstorage/s12b3v/dp/data'
+EXP_DIR_PATH = '/home/jovyan/sharedstorage/s12b3v/dp/dt/exp'
+LOG_DIR_PATH = '/home/jovyan/sharedstorage/s12b3v/dp/dt/log'
+BERT_MODEL_PATH = '/home/jovyan/sharedstorage/s12b3v/dp/dt/bert_models'
+SBERT_MODEL_PATH = '/home/jovyan/sharedstorage/s12b3v/dp/dt/sbert_models'
+SPACY_MODEL_PATH = '/home/jovyan/sharedstorage/s12b3v/dp/dt/spacy_models'
 
 PROC_DATA_DIR_PATH = p.join(DATA_DIR_PATH, 'dt-processed')
+FEATURES_DIR_PATH = p.join(PROC_DATA_DIR_PATH, 'features')
 
 POLIT_DATA_DIR_PATH = p.join(DATA_DIR_PATH, 'political_debates')
 COVID_DATA_DIR_PATH = p.join(DATA_DIR_PATH, 'covid_tweets')
