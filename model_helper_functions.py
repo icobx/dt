@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import torch
 import math
@@ -10,12 +11,15 @@ def save_checkpoint(save_path, model, optimizer, val_loss):
     if save_path == None:
         return
 
-    state_dict = {'model_state_dict': model.state_dict(),
-                  'optimizer_state_dict': optimizer.state_dict(),
-                  'valid_loss': val_loss}
+    save_path = os.path.join(save_path, 'checkpoint.pt')
+
+    state_dict = {
+        'model_state_dict': model.state_dict(),
+        'optimizer_state_dict': optimizer.state_dict(),
+        'val_loss': val_loss
+    }
 
     torch.save(state_dict, save_path)
-    print(f'Model saved to ==> {save_path}')
 
 
 def load_checkpoint(load_path, model, optimizer, device):
@@ -29,20 +33,22 @@ def load_checkpoint(load_path, model, optimizer, device):
     model.load_state_dict(state_dict['model_state_dict'])
     optimizer.load_state_dict(state_dict['optimizer_state_dict'])
 
-    return state_dict['valid_loss']
+    return state_dict['val_loss']
 
 
-def save_metrics(save_path, train_loss_list, val_loss_list, global_steps_list):
+def save_metrics(save_path, train_losses, val_losses):
 
     if save_path == None:
         return
 
-    state_dict = {'train_loss_list': train_loss_list,
-                  'valid_loss_list': val_loss_list,
-                  'global_steps_list': global_steps_list}
+    save_path = os.path.join(save_path, 'metrics.pt')
+
+    state_dict = {
+        'train_losses': train_losses,
+        'val_losses': val_losses,
+    }
 
     torch.save(state_dict, save_path)
-    print(f'Model saved to ==> {save_path}')
 
 
 def load_metrics(load_path, device):
@@ -53,7 +59,7 @@ def load_metrics(load_path, device):
     state_dict = torch.load(load_path, map_location=device)
     print(f'Model loaded from <== {load_path}')
 
-    return state_dict['train_loss_list'], state_dict['valid_loss_list'], state_dict['global_steps_list']
+    return state_dict['train_losses'], state_dict['val_losses']
 
 
 def save_params(save_path, params):
@@ -105,6 +111,7 @@ def scale(tensor, extremes_t: tuple = None, min_r=0, max_r=1):
 
     return torch.zeros(tensor.size())
 
+
 def range_inc(start, stop, step, inc, inc_operator='*'):
     i = start
     while i < stop:
@@ -115,6 +122,7 @@ def range_inc(start, stop, step, inc, inc_operator='*'):
         else:
             step += inc
 
+
 def round_to_first_non_zero(nums, add_to_dist=0):
     for i in range(len(nums)):
         x = nums[i]
@@ -123,7 +131,7 @@ def round_to_first_non_zero(nums, add_to_dist=0):
         dist = abs(round(math.log10(abs(x)))) + add_to_dist
         mp = 10**dist
         nums[i] = int(x * mp) / mp
-    
+
     return nums
 # min_v = torch.min(vector)
 # range_v = torch.max(vector) - min_v
