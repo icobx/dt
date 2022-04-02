@@ -1,9 +1,10 @@
+import os
 import torch
 import spacy
 import nltk
 import numpy as np
 
-from sklearn.preprocessing import LabelBinarizer
+from sklearn.preprocessing import OneHotEncoder
 from definitions import *
 from model_helper_functions import scale
 
@@ -14,7 +15,9 @@ class HandleStopwords(object):
 
     def __init__(self, stopwords: str = 'wstop', spacy_core: str = 'en_core_web_lg',) -> None:
         self.remove_stopwords = stopwords != 'wstop'
-        self.spacy = spacy.load(spacy_core)
+#         spacy.prefer_gpu()
+        self.spacy = spacy.load(os.path.join(SPACY_MODEL_PATH, spacy_core))
+        nltk.download('punkt')
         self.stopwords = set(nltk.corpus.stopwords.words('english'))
 
     def __call__(self, sample):
@@ -50,9 +53,9 @@ class OneHot(object):
                 'dep': SPACY_DEP_TAGS
             }[feat_type]
 
-        self.lb = LabelBinarizer()
+        self.enc = OneHotEncoder(handle_unknown='ignore')
 
-        self.lb.fit(self.tags)
+        self.enc.fit(np.array(self.tags).reshape(-1, 1))
 
     def __call__(self, sample):
         ftwu = f'{self.feat_type}_'
@@ -60,12 +63,12 @@ class OneHot(object):
         sid, content, label, spacied, feature = sample
 
         tags = [getattr(t, ftwu) for t in spacied[0]]
-
-        one_hot = self.lb.transform(tags)
+        
+        one_hot = self.enc.transform(np.array(tags).reshape(-1, 1))
         one_hot = np.sum(one_hot, axis=0)
         one_hot = np.where(one_hot >= 1, 1, 0)
 
-        feature = np.append(feature, one_hot)
+        feature = np.append(feature, one_hot[0])
 
         return sid, content, label, spacied, feature
 
@@ -98,11 +101,11 @@ class Sum(object):
             # }[ft] for ft in feat_type]
 
         # self.lb = {ft: LabelBinarizer() for ft in feat_type}
-        self.lb = LabelBinarizer()
+        self.enc = OneHotEncoder(handle_unknown='ignore')
 
         # for i, lb in enumerate(self.lb):
         #     self.lb[lb].fit(self.tags[i])
-        self.lb.fit(self.tags)
+        self.enc.fit(np.array(self.tags).reshape(-1, 1))
 
     def __call__(self, sample):
         # ftwu = [f'{ft}_' for ft in self.feat_type]
@@ -112,10 +115,10 @@ class Sum(object):
 
         tags = [getattr(t, ftwu) for t in spacied[0]]
 
-        feat_sum = self.lb.transform(tags)
+        feat_sum = self.enc.transform(np.array(tags).reshape(-1, 1))
         feat_sum = np.sum(feat_sum, axis=0)
 
-        feature = np.append(feature, feat_sum)
+        feature = np.append(feature, feat_sum[0])
         # for fta in ftwu:
         # tags =
 
@@ -183,7 +186,7 @@ class ToBinary(object):
         feature = feature if torch.is_tensor(feature) else torch.tensor(feature)
         feature = feature.int()
 
-        mask = 2**torch.arange(self.n_bits-1, -1, -1).to(feature.device, feature.dtype).int()
+        mask = 2**torch.arange(self.n_bits-1, -1, -1).to(feature.device, feature.dtype)
 
         feature = feature.unsqueeze(-1).bitwise_and(mask).ne(0).byte().view(-1)
 
