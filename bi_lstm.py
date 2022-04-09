@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 
-# from bert_embedding_model import BertEmbeddingModel
+from bert_embedding_model import BertEmbeddingModel
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
 
@@ -34,15 +34,18 @@ class Attention(nn.Module):
 
         # swap dimensions (permute), add unitary dimension at the start (unsqueeze), repeat the the tensor (repeaat)
         weights = self.attention_weights.permute(1, 0).unsqueeze(0).repeat(batch_size, 1, 1)
-        # print('pre bmm: ', weights.size())
+        # print('weights pre bmm: ', weights.size())
+        # print('inputs pre bmm: ', inputs.size())
+
         # print('pre bmm: ', weights)
         # apply attention layer
         weights = torch.bmm(
             inputs,
             weights
         )
-        # print('weights', weights.size())
-        # print('weights', weights)
+        # print('weights post bmm', weights.size())
+        # print('weights squeezed', weights.squeeze().size())
+        # print('weights squeezed', weights.squeeze())
         attentions = torch.softmax(self.relu(weights.squeeze()), dim=-1)
         # print('attentions', attentions.size())
         # print('attentions', attentions)
@@ -104,14 +107,10 @@ class BiLSTM(nn.Module):
             self.seq = nn.Sequential(
                 nn.Linear(2*hidden_dim+sent_level_feature_dim, 2*hidden_dim+sent_level_feature_dim),
                 nn.BatchNorm1d(2*hidden_dim+sent_level_feature_dim),
-                nn.ReLU()
             )
         self.dense = nn.Linear(2*hidden_dim+sent_level_feature_dim, 1)
 
     def forward(self, embeddings, lengths, sent_level_features=None):
-#         lengths = lengths.cpu()
-#         print(lengths.size())
-#         print(sent_level_features.size())
         packed = pack_padded_sequence(embeddings, lengths, batch_first=True, enforce_sorted=False)
         packed_out, _ = self.lstm(packed)
         output, lens = pad_packed_sequence(packed_out, batch_first=True)
@@ -126,7 +125,7 @@ class BiLSTM(nn.Module):
         if self.seq:
             out = self.drop(out)
             out = self.seq(out)
-           
+
         out = self.drop(out)
         out = self.dense(out)
 

@@ -127,16 +127,19 @@ def sample_development_set(
     dev_frac: float = 0.1,
     y_col_name: str = 'label',
     index_col_name: str = 'id',
-    randstate: int = 2
+    randstate: int = 2,
+    should_return: bool = False,
+    train_filename: str = None
 ) -> None:
     """
     Create subset for development process.
     """
     dev_path = p.join(PROC_DATA_DIR_PATH, 'dev')
     train_path = p.join(POLIT_DATA_DIR_PATH, 'train')
+    train_filename = train_filename if train_filename else 'train_combined.tsv'
 
     train_df = pd.read_csv(
-        p.join(train_path, 'train_combined.tsv'),
+        p.join(train_path, train_filename),
         sep='\t'
     )
     # get all classes
@@ -159,6 +162,9 @@ def sample_development_set(
         train_dev_df = train_dev_df.append(train_df.loc[train_df[index_col_name].isin(rand_indexes)])
 
     train_dev_df = train_dev_df.reset_index(drop=True)
+
+    if should_return:
+        return train_dev_df
 
     train_dev_df.to_csv(
         p.join(dev_path, 'dev.tsv'),
@@ -243,17 +249,19 @@ def scrape_n_label(label_threshold: float = 0.5) -> None:
                 header=False,
                 index=False
             )
-            
+
+
 def filter_by_length(df, length=3):
     """
     Drop sentences of length `length` or shorter.
     """
     import nltk
+
     def get_length(x):
         return len(nltk.word_tokenize(x))
-   
+
     df['length'] = df['content'].apply(get_length)
-    
+
     return df[df['length'] > length].reset_index(drop=True)
 
 
@@ -261,23 +269,22 @@ def pad_features(dataset):
     max_len = 0
     for _, _, _, feature in dataset:
         max_len = max(len(feature), max_len)
-        
+
     for i in range(len(dataset)):
         a, b, c, d = dataset[i]
         feat_len = len(d)
         if feat_len < max_len:
             diff = max_len - feat_len
             print('diff', diff)
-            
+
             padding = torch.zeros((diff, ))
             print('padding', padding)
             d = torch.cat((padding, d), dim=0)
             print('feature;', d)
-        
+
         dataset[i] = (a, b, c, d)
         print(f'dataset at {i}', dataset[i])
     return dataset
-            
 
 
 # combine_debates()

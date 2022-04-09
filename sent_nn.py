@@ -1,8 +1,5 @@
 import torch
 import torch.nn as nn
-import numpy as np
-
-from sentence_transformers import SentenceTransformer
 
 
 class SentNN(nn.Module):
@@ -23,6 +20,7 @@ class SentNN(nn.Module):
             self.seq = nn.Sequential(
                 nn.Linear(embeddings_dim+sentence_level_feature_dim, embeddings_dim+sentence_level_feature_dim),
                 nn.BatchNorm1d(embeddings_dim+sentence_level_feature_dim),
+                # TODO: try w / w/out
                 nn.ReLU()
             )
         self.dense = nn.Linear(embeddings_dim+sentence_level_feature_dim, 1)
