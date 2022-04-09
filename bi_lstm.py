@@ -107,12 +107,14 @@ class BiLSTM(nn.Module):
             self.seq = nn.Sequential(
                 nn.Linear(2*hidden_dim+sent_level_feature_dim, 2*hidden_dim+sent_level_feature_dim),
                 nn.BatchNorm1d(2*hidden_dim+sent_level_feature_dim),
+                #                 nn.ReLU()
             )
         self.dense = nn.Linear(2*hidden_dim+sent_level_feature_dim, 1)
 
     def forward(self, embeddings, lengths, sent_level_features=None):
         packed = pack_padded_sequence(embeddings, lengths, batch_first=True, enforce_sorted=False)
         packed_out, _ = self.lstm(packed)
+
         output, lens = pad_packed_sequence(packed_out, batch_first=True)
         output, _ = self.attention(output, lens)
 
@@ -127,6 +129,7 @@ class BiLSTM(nn.Module):
             out = self.seq(out)
 
         out = self.drop(out)
+#         print('pre dense out size: ', out.size())
         out = self.dense(out)
 
         return torch.squeeze(out, 1)
@@ -136,7 +139,7 @@ class BiLSTM(nn.Module):
         if features is None or len(features) == 0:
             return x
 
-        return torch.cat((x, features), dim=cat_dim)
+        return torch.cat((x, features), dim=cat_dim).float()
 
     @staticmethod
     def _pad(emb_tensors):

@@ -26,7 +26,8 @@ def load_checkpoint(load_path, model, optimizer, device):
 
     if load_path == None:
         return
-
+    
+    load_path = os.path.join(load_path, 'checkpoint.pt')
     state_dict = torch.load(load_path, map_location=device)
     print(f'Model loaded from <== {load_path}')
 
@@ -55,7 +56,8 @@ def load_metrics(load_path, device):
 
     if load_path == None:
         return
-
+    
+    load_path = os.path.join(load_path, 'metrics.pt')
     state_dict = torch.load(load_path, map_location=device)
     print(f'Model loaded from <== {load_path}')
 

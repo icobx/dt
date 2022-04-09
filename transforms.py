@@ -24,10 +24,11 @@ class HandleStopwords(object):
         sid, content, label, spacied, feature = sample
 
         if self.remove_stopwords:
-            no_stop = ' '.join([w for w in nltk.word_tokenize(content) if w not in self.stopwords])
-            spacied = [self.spacy(no_stop)]
-        else:
-            spacied = [self.spacy(content)]
+            content = ' '.join([w for w in nltk.word_tokenize(content) if w not in self.stopwords])
+#             spacied = [self.spacy(no_stop)]
+#             content = no_stop
+#         else:
+        spacied = [self.spacy(content)]
 
         return sid, content, label, spacied, feature
 

@@ -24,7 +24,7 @@ class BertEmbeddingModel():
         dep_features=False,
         triplet_features=False,
         scale=False,
-        remove_stopwords=False
+#         remove_stopwords=False
     ) -> None:
         self.pooling_strat = pooling_strat
         self.device = device
@@ -35,7 +35,7 @@ class BertEmbeddingModel():
         self.model.eval()
 
         self.scale = scale
-        self.remove_stopwords = remove_stopwords
+#         self.remove_stopwords = remove_stopwords
 
         dep_features = dep_features if dep_features else triplet_features
         self.dep_features = dep_features
@@ -57,8 +57,8 @@ class BertEmbeddingModel():
                 self.pos_enc = OneHotEncoder()
                 self.pos_enc.fit(np.array(SPACY_POS_TAGS).reshape(-1, 1))
                 
-        nltk.download('punkt')
-        self.stopwords = set(nltk.corpus.stopwords.words('english'))
+#         nltk.download('punkt')
+#         self.stopwords = set(nltk.corpus.stopwords.words('english'))
 
         self.pooling_strat_methods = {
             'last_four': BertEmbeddingModel._ps_last_four,
@@ -87,7 +87,7 @@ class BertEmbeddingModel():
             return_tensors='pt',
         )
         am_sum = torch.sum(t_out['attention_mask'], dim=1)
-        lengths = np.asarray([am_sum[i].item() for i in range(len(sentences))])
+        lengths = torch.tensor([am_sum[i].item() for i in range(len(sentences))]).to(self.device)
 
         t_out['token_type_ids'] = t_out['token_type_ids'] + 1
 
@@ -107,8 +107,7 @@ class BertEmbeddingModel():
                 pooled = scale(pooled, extremes_t=(-33.0, 11.0))
 
             if not self.dep_features and not self.triplet_features:
-#                 print(torch.tensor(lengths+self.spacy_dim).to(self.device))
-                return pooled, torch.tensor(lengths).to(self.device)
+                return pooled, lengths
 
             emb_w_feat = torch.cat(
                 (
@@ -118,7 +117,7 @@ class BertEmbeddingModel():
                 dim=2
             )
             
-            return emb_w_feat, torch.tensor(lengths+self.spacy_dim).to(self.device)
+            return emb_w_feat, lengths
 
     def create_features(self, sentences, input_ids):
         special_tokens = {'[CLS]', '[SEP]', '[PAD]'}
@@ -127,8 +126,8 @@ class BertEmbeddingModel():
             tokenized = self.tokenizer.convert_ids_to_tokens(input_ids[i])
             # spacy on joined tokenized to keep the same length
             tokenized_for_spacy = [t for t in tokenized if t not in special_tokens]
-            if self.remove_stopwords:
-                tokenized_for_spacy = [t for t in tokenized_for_spacy if t not in self.stopwords]
+#             if self.remove_stopwords:
+#                 tokenized_for_spacy = [t for t in tokenized_for_spacy if t not in self.stopwords]
             spacied = self.spacy(' '.join(tokenized_for_spacy))
             encoded = []
             spacy_ind = 0
@@ -140,14 +139,14 @@ class BertEmbeddingModel():
                 elif spacy_ind < len(spacied):
                     deps = np.array([spacied[spacy_ind].dep_]).reshape(-1, 1)
                     word_ft = self.dep_enc.transform(deps).toarray()[0]
-
+                    
                     if self.triplet_features:
                         token_poses = np.array([spacied[spacy_ind].pos_]).reshape(-1, 1)
                         head_poses = np.array([spacied[spacy_ind].head.pos_]).reshape(-1, 1)
                         
                         token_pos = self.pos_enc.transform(token_poses).toarray()[0]
                         head_pos = self.pos_enc.transform(head_poses).toarray()[0]
-                        word_ft = [*token_pos, *word_ft, *head_pos]
+                        word_ft = [*head_pos, *word_ft, *token_pos]
 
                     encoded.append(word_ft)
 
