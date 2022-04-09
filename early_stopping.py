@@ -31,7 +31,7 @@ class EarlyStopping:
         self.path = path
         self.trace_func = trace_func
 
-    def __call__(self, val_loss, model, optimizer, train_losses, val_losses, acomp_metrics=None):
+    def __call__(self, val_loss, model, optimizer=None, train_losses=None, val_losses=None, acomp_metrics=None):
 
         score = -val_loss
 
@@ -51,7 +51,7 @@ class EarlyStopping:
         else:
             self.best_score = score
             self.acomp_metrics = acomp_metrics
-            self.save_checkpoint(val_loss, model, optimizer)
+            self.save_checkpoint(val_loss, model, optimizer, train_losses, val_losses)
             self.counter = 0
 
     def save_checkpoint(self, val_loss, model, optimizer, train_losses, val_losses):
