@@ -21,7 +21,7 @@ class SentNN(nn.Module):
                 nn.Linear(embeddings_dim+sentence_level_feature_dim, embeddings_dim+sentence_level_feature_dim),
                 nn.BatchNorm1d(embeddings_dim+sentence_level_feature_dim),
                 # TODO: try w / w/out
-                nn.ReLU()
+#                 nn.ReLU()
             )
         self.dense = nn.Linear(embeddings_dim+sentence_level_feature_dim, 1)
 

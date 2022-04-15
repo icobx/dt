@@ -11,16 +11,17 @@ from model_helper_functions import scale
 # TODO: remove comments
 
 
-class HandleStopwords(object):
+class HandleStopwords(torch.nn.Module):
 
     def __init__(self, stopwords: str = 'wstop', spacy_core: str = 'en_core_web_lg',) -> None:
+        super().__init__()
         self.remove_stopwords = stopwords != 'wstop'
 #         spacy.prefer_gpu()
         self.spacy = spacy.load(os.path.join(SPACY_MODEL_PATH, spacy_core))
         nltk.download('punkt')
         self.stopwords = set(nltk.corpus.stopwords.words('english'))
 
-    def __call__(self, sample):
+    def forward(self, sample):
         sid, content, label, spacied, feature = sample
 
         if self.remove_stopwords:
@@ -33,7 +34,7 @@ class HandleStopwords(object):
         return sid, content, label, spacied, feature
 
 
-class OneHot(object):
+class OneHot(torch.nn.Module):
 
     def __init__(
         self,
@@ -41,7 +42,7 @@ class OneHot(object):
         from_selection: bool = False,
         stopwords: str = 'wstop',
     ) -> None:
-
+        super().__init__()
         self.feat_type = feat_type
         self.remove_stopwords = stopwords != 'wstop'
 
@@ -58,7 +59,7 @@ class OneHot(object):
 
         self.enc.fit(np.array(self.tags).reshape(-1, 1))
 
-    def __call__(self, sample):
+    def forward(self, sample):
         ftwu = f'{self.feat_type}_'
 
         sid, content, label, spacied, feature = sample
@@ -74,7 +75,7 @@ class OneHot(object):
         return sid, content, label, spacied, feature
 
 
-class Sum(object):
+class Sum(torch.nn.Module):
 
     def __init__(
         self,
@@ -82,7 +83,7 @@ class Sum(object):
         from_selection: bool = False,
         stopwords: str = 'wstop',
     ) -> None:
-
+        super().__init__()
         self.feat_type = feat_type
         self.remove_stopwords = stopwords != 'wstop'
 
@@ -108,7 +109,7 @@ class Sum(object):
         #     self.lb[lb].fit(self.tags[i])
         self.enc.fit(np.array(self.tags).reshape(-1, 1))
 
-    def __call__(self, sample):
+    def forward(self, sample):
         # ftwu = [f'{ft}_' for ft in self.feat_type]
         ftwu = f'{self.feat_type}_'
 
@@ -133,12 +134,12 @@ class Sum(object):
         return sid, content, label, spacied, feature
 
 
-class CountWords(object):
+class CountWords(torch.nn.Module):
 
     def __init__(self) -> None:
-        pass
+        super().__init__()
 
-    def __call__(self, sample):
+    def forward(self, sample):
         sid, content, label, spacied, feature = sample
 
         word_count = len([t for t in spacied[0] if not t.is_punct])
@@ -147,13 +148,14 @@ class CountWords(object):
         return sid, content, label, spacied, feature
 
 
-class Scale(object):
+class Scale(torch.nn.Module):
 
     def __init__(self, min_r: float = 0.0, max_r: float = 1.0) -> None:
+        super().__init__()
         self.min_r = min_r
         self.max_r = max_r
 
-    def __call__(self, sample):
+    def forward(self, sample):
         sid, content, label, spacied, feature = sample
 
         feature = scale(feature, min_r=self.min_r, max_r=self.max_r)
@@ -161,24 +163,25 @@ class Scale(object):
         return sid, content, label, spacied, feature
 
 
-class NoTransform(object):
+class NoTransform(torch.nn.Module):
     """
     Do nothing transform. Useful for feature optimization as interface unification.
     """
 
     def __init__(self, feat_type=None, from_selection=None, stopwords=None) -> None:
-        pass
+        super().__init__()
 
-    def __call__(self, sample):
+    def forward(self, sample):
         return sample
 
 
-class ToBinary(object):
+class ToBinary(torch.nn.Module):
 
     def __init__(self, n_bits: int = 6) -> None:
+        super().__init__()
         self.n_bits = n_bits
 
-    def __call__(self, sample):
+    def forward(self, sample):
         sid, content, label, spacied, feature = sample
 
         if len(feature) == 0:
@@ -194,12 +197,12 @@ class ToBinary(object):
         return sid, content, label, spacied, feature
 
 
-class ToTensor(object):
+class ToTensor(torch.nn.Module):
 
     def __init__(self) -> None:
-        pass
+        super().__init__()
 
-    def __call__(self, sample):
+    def forward(self, sample):
         sid, content, label, _, feature = sample
 
         # if len(feature) == 0:

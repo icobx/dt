@@ -12,22 +12,24 @@ class PairNN(nn.Module):
         super(PairNN, self).__init__()
 
         self.sn0 = subnetwork_0
-        self.sn1 = subnetwork_1
+        self.sn1 = subnetwork_1 if not subnetwork_1.is_unused else None
 
         self.dropout = nn.Dropout(p=dropout)
         self.seq = nn.Sequential(
-            nn.Linear(2, hidden_dim),
+            nn.Linear(1 if subnetwork_1.is_unused else 2, hidden_dim),
             nn.Linear(hidden_dim, hidden_dim),
             nn.Dropout(p=dropout),
             nn.Linear(hidden_dim, 1)
         )
 
     def forward(self, input0, input1):
-        out0 = torch.unsqueeze(self.sn0(*input0), 1)
-        out1 = torch.unsqueeze(self.sn1(input1), 1)
-
-        combined = torch.cat((out0, out1), 1)
-        return torch.squeeze(self.seq(combined), 1)
+        out = torch.unsqueeze(self.sn0(*input0), 1)
+        
+        if self.sn1:
+            out_feat = torch.unsqueeze(self.sn1(input1), 1)
+            out = torch.cat((out, out_feat), 1)
+        
+        return torch.squeeze(self.seq(out), 1)
 
 
 # bem = BertEmbeddingModel()
