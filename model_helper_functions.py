@@ -6,12 +6,12 @@ import math
 from definitions import FEATURE_SELECTION
 
 
-def save_checkpoint(save_path, model, optimizer, val_loss):
+def save_checkpoint(save_path, model, optimizer, val_loss, bam=''):
 
     if save_path == None:
         return
 
-    save_path = os.path.join(save_path, 'checkpoint.pt')
+    save_path = os.path.join(save_path, f'{bam}checkpoint.pt')
 
     state_dict = {
         'model_state_dict': model.state_dict(),
@@ -22,12 +22,12 @@ def save_checkpoint(save_path, model, optimizer, val_loss):
     torch.save(state_dict, save_path)
 
 
-def load_checkpoint(load_path, model, optimizer, device):
+def load_checkpoint(load_path, model, optimizer, device, bam=''):
 
     if load_path == None:
         return
     
-    load_path = os.path.join(load_path, 'checkpoint.pt')
+    load_path = os.path.join(load_path, f'{bam}checkpoint.pt')
     state_dict = torch.load(load_path, map_location=device)
     print(f'Model loaded from <== {load_path}')
 
@@ -37,31 +37,33 @@ def load_checkpoint(load_path, model, optimizer, device):
     return state_dict['val_loss']
 
 
-def save_metrics(save_path, train_losses, val_losses):
+def save_metrics(save_path, train_losses, val_losses, train_clf_reports, val_clf_reports, bam=''):
 
     if save_path == None:
         return
 
-    save_path = os.path.join(save_path, 'metrics.pt')
+    save_path = os.path.join(save_path, f'{bam}metrics.pt')
 
     state_dict = {
         'train_losses': train_losses,
         'val_losses': val_losses,
+        'train_clf_reports': train_clf_reports,
+        'val_clf_reports': val_clf_reports
     }
 
     torch.save(state_dict, save_path)
 
 
-def load_metrics(load_path, device):
+def load_metrics(load_path, device, bam=''):
 
     if load_path == None:
         return
     
-    load_path = os.path.join(load_path, 'metrics.pt')
+    load_path = os.path.join(load_path, f'{bam}metrics.pt')
     state_dict = torch.load(load_path, map_location=device)
     print(f'Model loaded from <== {load_path}')
 
-    return state_dict['train_losses'], state_dict['val_losses']
+    return state_dict['train_losses'], state_dict['val_losses'], state_dict['train_clf_reports'], state_dict['val_clf_reports']
 
 
 def save_params(save_path, params):

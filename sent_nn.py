@@ -9,40 +9,38 @@ class SentNN(nn.Module):
         embeddings_dim=768,
         sentence_level_feature_dim=0,
         dropout=0.5,
-        w_seq=False
+#         hidden_dim=128,
+#         n_hidden_layers=1
     ):
         super(SentNN, self).__init__()
 
-        # TODO: mozno viacero dense?
-        self.drop = nn.Dropout(p=dropout)
-        self.seq = None
-        if w_seq:
-            self.seq = nn.Sequential(
-                nn.Linear(embeddings_dim+sentence_level_feature_dim, embeddings_dim+sentence_level_feature_dim),
-                nn.BatchNorm1d(embeddings_dim+sentence_level_feature_dim),
-                # TODO: try w / w/out
-#                 nn.ReLU()
-            )
+#         dropouts = [nn.Dropout(p=dropout) for _ in range(n_hidden_layers+1)]
+#         dense_layers = [nn.Linear(hidden_dim, hidden_dim) for _ in range(n_hidden_layers)]
+
+#         sequence = [None]*(len(dropouts)+len(dense_layers))
+
+#         sequence[::2] = dropouts
+#         sequence[1::2] = dense_layers
+
+#         self.layers = nn.Sequential(nn.Linear(embeddings_dim+sentence_level_feature_dim, hidden_dim), *sequence, nn.Linear(hidden_dim, 1))
+        self.dropout = nn.Dropout(p=dropout)
         self.dense = nn.Linear(embeddings_dim+sentence_level_feature_dim, 1)
+        
 
     def forward(self, embeddings, sent_level_features=None):
-
         out = self._append_features(embeddings, sent_level_features, cat_dim=1)
-        if self.seq:
-            out = self.drop(out)
-            out = self.seq(out)
-
-        out = self.drop(out)
+        
+        out = self.dropout(out)
         out = self.dense(out)
-
+        
         return torch.squeeze(out, 1)
 
     @staticmethod
     def _append_features(x, features, cat_dim):
-        if features is None or len(features) == 0:
+        if features is None or features.size()[-1] == 0:
             return x
-
-        return torch.cat((x, features), dim=cat_dim)
+        
+        return torch.cat((x, features), dim=cat_dim).float()
 
 
 # st = SentenceTransformer('all-mpnet-base-v2')

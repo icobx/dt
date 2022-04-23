@@ -17,7 +17,7 @@ class FeatureNN(nn.Module):
             sequence[::2] = dropouts
             sequence[1::2] = dense_layers
 
-            self.seq = nn.Sequential(nn.Linear(feature_dim, hidden_dim), *sequence, nn.Linear(hidden_dim, 1))
+            self.layers = nn.Sequential(nn.Linear(feature_dim, hidden_dim), *sequence, nn.Linear(hidden_dim, 1))
         
         else:
             self.is_unused = True
@@ -26,4 +26,4 @@ class FeatureNN(nn.Module):
         if self.is_unused:
             return 0
         
-        return torch.squeeze(self.seq(features), 1)
+        return torch.squeeze(self.layers(features), 1)

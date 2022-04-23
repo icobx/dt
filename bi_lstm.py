@@ -136,9 +136,9 @@ class BiLSTM(nn.Module):
 
     @staticmethod
     def _append_features(x, features, cat_dim):
-        if features is None or len(features) == 0:
+        if features is None or features.size()[-1] == 0:
             return x
-
+     
         return torch.cat((x, features), dim=cat_dim).float()
 
     @staticmethod
