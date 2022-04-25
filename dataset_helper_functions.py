@@ -253,7 +253,8 @@ def scrape_n_label(label_threshold: float = 0.5) -> None:
 
 def filter_by_length(df, length=3):
     """
-    Drop sentences of length `length` or shorter.
+    Drop sentences of length `length`
+    or shorter.
     """
     import nltk
 
@@ -286,6 +287,105 @@ def pad_features(dataset):
         print(f'dataset at {i}', dataset[i])
     return dataset
 
+
+def weak_data_merge(merge_type='simple', rs=22):
+    """
+    Merges weakly labelled dataset with original training dataset.
+    
+    Args:
+        merge_type (str, optional): How to merge original training dataset with weakly labelled dataset.
+        Accepts a value from ['balanced_original', 'simple', 'balanced_weak', 'balanced_result']. Defaults to 'simple'.
+        Result attributes:
+                                          balanced_original | simple | balanced_weak | balanced_result
+                                         ______________________________________________________________
+        train/val positive class ratio    0.5               | 0.1926 | 0.4308        | 0.5
+        train len                         22654             | 140473 | 63043         | 54285
+        val len                           --                | 35307  | 15791         | 13594
+        
+        rs (int, optional): Random state for reproducibility of sample methods. Defaults to 22.
+                
+    """
+    weak_path = os.path.join(POLIT_DATA_DIR_PATH, 'train_weak')
+    orig_path = os.path.join(POLIT_DATA_DIR_PATH, 'train')
+    val_path = os.path.join(POLIT_DATA_DIR_PATH, 'val')
+    
+    weak = pd.read_csv(
+        f'{weak_path}/train_weak_combined.tsv',
+        sep='\t',
+        names=['id', 'src', 'content', 'label', 'score']
+    ).drop(columns=['score']).reset_index(drop=True)
+    
+    og = pd.read_csv(
+        f'{orig_path}/train_combined.tsv',
+        sep='\t',
+        index_col=False
+    ).drop(columns=['i'])
+    
+    og_val = pd.read_csv(
+        f'{val_path}/val_combined.tsv',
+        sep='\t',
+        index_col=False
+    ).drop(columns=['i'])
+    
+    weak = weak.drop(weak[weak['id'].isin(og['id'])].index)
+    weak = weak.drop(weak[weak['id'].isin(og_val['id'])].index)
+    
+    val_ratio = 0.2 # len(og_val) / len(og)
+    
+    og_p = og[og['label'] == 1]
+    og_n = og[og['label'] == 0]
+    
+    weak_p = weak[weak['label'] == 1]
+    weak_n = weak[weak['label'] == 0]
+    
+    if merge_type == 'balanced_original':   
+        weak_p = weak_p.sample(n=abs(len(og_n) - len(og_p)), ignore_index=True, axis=0, random_state=rs)
+        
+        return pd.concat([og, weak_p]).sample(frac=1.0, ignore_index=True, axis=0, random_state=rs), None
+        
+    if merge_type == 'simple':
+        # positive class ratio after concat: 0.1928211714604387
+        # len after concat: 177522
+        final = pd.concat([og, weak])
+    
+    if merge_type == 'balanced_weak':
+        # positive class ratio after concat: 0.43084242721746024
+        # len after concat: 79449
+        weak_n = weak_n.sample(n=len(weak_p), ignore_index=True, axis=0, random_state=rs)
+        final = pd.concat([og, weak_p, weak_n])
+    
+    if merge_type == 'balanced_result':
+        # positive class ratio after concat: 0.5
+        # len after concat: 68460
+        len_p_comb = len(og_p) + len(weak_p)
+        weak_n = weak_n.sample(n=abs(len_p_comb - len(og_n)), ignore_index=True, axis=0, random_state=rs)
+        
+        final = pd.concat([og, weak_p, weak_n])
+    
+    final = final.sample(frac=1.0, ignore_index=True, axis=0, random_state=rs)
+    final_p = final[final['label'] == 1]
+    final_n = final[final['label'] == 0]
+    final_p_ratio = len(final_p) / len(final)
+
+    val_len = int(val_ratio * len(final))
+    val_p_len = int(val_len * final_p_ratio)
+
+    val_p = final_p.sample(n=val_p_len, ignore_index=True, axis=0, random_state=rs)
+    val_n = final_n.sample(n=val_len-val_p_len, ignore_index=True, axis=0, random_state=rs)
+    val = pd.concat([val_p, val_n]).sample(frac=1.0, ignore_index=True, axis=0, random_state=rs)
+
+    final = final[~final['id'].isin(val['id'])].reset_index(drop=True)
+
+    return final, val
+        
+
+# print(len(weak_data_merge(merge_type='simple')))
+# x, y = weak_data_merge(merge_type='balanced_original') # balanced_weak
+
+# print(len(x))
+# # print(len(y))
+# print(len(x[x['label'] == 1]) / len(x))
+# print(len(y[y['label'] == 1]) / len(y))
 
 # combine_debates()
 # create_validation_subset()
