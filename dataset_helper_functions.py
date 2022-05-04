@@ -288,20 +288,22 @@ def pad_features(dataset):
     return dataset
 
 
-def weak_data_merge(merge_type='simple', rs=22):
+def weak_data_merge(merge_type='simple', weak_frac=1.0, rs=22):
     """
     Merges weakly labelled dataset with original training dataset.
     
     Args:
         merge_type (str, optional): How to merge original training dataset with weakly labelled dataset.
-        Accepts a value from ['balanced_original', 'simple', 'balanced_weak', 'balanced_result']. Defaults to 'simple'.
+        Accepts a value from ['balanced_original', 'weak_only', 'simple', 'balanced_weak', 'balanced_result'].
+        Defaults to 'simple'.
         Result attributes:
-                                          balanced_original | simple | balanced_weak | balanced_result
+                                          balanced_original | weak_only | simple | balanced_weak | balanced_result
                                          ______________________________________________________________
-        train/val positive class ratio    0.5               | 0.1926 | 0.4308        | 0.5
-        train len                         22654             | 140473 | 63043         | 54285
-        val len                           --                | 35307  | 15791         | 13594
+        train/val positive class ratio    0.5               | 0.2041    | 0.1926 | 0.4308        | 0.5
+        train len                         22654             | 131133    | 140473 | 63043         | 54285
+        val len                           --                | 32974     | 35307  | 15791         | 13594
         
+        weak_frac (float, optional): Fraction of weakly labelled dataset returned. Only used with merge_type='weak_only'.
         rs (int, optional): Random state for reproducibility of sample methods. Defaults to 22.
                 
     """
@@ -337,11 +339,14 @@ def weak_data_merge(merge_type='simple', rs=22):
     
     weak_p = weak[weak['label'] == 1]
     weak_n = weak[weak['label'] == 0]
-    
+        
     if merge_type == 'balanced_original':   
         weak_p = weak_p.sample(n=abs(len(og_n) - len(og_p)), ignore_index=True, axis=0, random_state=rs)
         
         return pd.concat([og, weak_p]).sample(frac=1.0, ignore_index=True, axis=0, random_state=rs), None
+    
+    if merge_type == 'weak_only':
+        final = weak.sample(frac=weak_frac, ignore_index=True, axis=0, random_state=rs)
         
     if merge_type == 'simple':
         # positive class ratio after concat: 0.1928211714604387
@@ -380,10 +385,10 @@ def weak_data_merge(merge_type='simple', rs=22):
         
 
 # print(len(weak_data_merge(merge_type='simple')))
-# x, y = weak_data_merge(merge_type='balanced_original') # balanced_weak
+# x, y = weak_data_merge(merge_type='weak_only') # balanced_weak
 
 # print(len(x))
-# # print(len(y))
+# print(len(y))
 # print(len(x[x['label'] == 1]) / len(x))
 # print(len(y[y['label'] == 1]) / len(y))
 
