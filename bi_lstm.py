@@ -86,7 +86,8 @@ class BiLSTM(nn.Module):
         embedding_dim=768,
         sent_level_feature_dim=0,
         device=torch.device('cpu'),
-        w_seq=False
+        w_seq=False,
+        w_att=False,
     ):
         super(BiLSTM, self).__init__()
 
@@ -100,7 +101,10 @@ class BiLSTM(nn.Module):
             bidirectional=True,
             dropout=lstm_dropout
         )
-        self.attention = Attention(hidden_dim=2*hidden_dim, device=device)
+        self.attention = None
+        if w_att:
+            self.attention = Attention(hidden_dim=2*hidden_dim, device=device)
+            
         self.drop = nn.Dropout(p=dropout)
         self.seq = None
         if w_seq:
@@ -116,7 +120,8 @@ class BiLSTM(nn.Module):
         packed_out, _ = self.lstm(packed)
 
         output, lens = pad_packed_sequence(packed_out, batch_first=True)
-        output, _ = self.attention(output, lens)
+        if self.attention:
+            output, _ = self.attention(output, lens)
 
         out_forward = output[range(len(output)), lengths - 1, :self.hidden_dim]
         out_reverse = output[:, 0, self.hidden_dim:]
