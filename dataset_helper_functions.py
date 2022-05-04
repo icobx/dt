@@ -291,7 +291,7 @@ def pad_features(dataset):
 def weak_data_merge(merge_type='simple', rs=22):
     """
     Merges weakly labelled dataset with original training dataset.
-    
+
     Args:
         merge_type (str, optional): How to merge original training dataset with weakly labelled dataset.
         Accepts a value from ['balanced_original', 'simple', 'balanced_weak', 'balanced_result']. Defaults to 'simple'.
@@ -301,67 +301,73 @@ def weak_data_merge(merge_type='simple', rs=22):
         train/val positive class ratio    0.5               | 0.1926 | 0.4308        | 0.5
         train len                         22654             | 140473 | 63043         | 54285
         val len                           --                | 35307  | 15791         | 13594
-        
+
         rs (int, optional): Random state for reproducibility of sample methods. Defaults to 22.
-                
+
     """
     weak_path = os.path.join(POLIT_DATA_DIR_PATH, 'train_weak')
     orig_path = os.path.join(POLIT_DATA_DIR_PATH, 'train')
     val_path = os.path.join(POLIT_DATA_DIR_PATH, 'val')
-    
+
     weak = pd.read_csv(
         f'{weak_path}/train_weak_combined.tsv',
         sep='\t',
         names=['id', 'src', 'content', 'label', 'score']
     ).drop(columns=['score']).reset_index(drop=True)
-    
+
     og = pd.read_csv(
-        f'{orig_path}/train_combined.tsv',
+        f'{orig_path}/train_sub_valid_combined.tsv',
         sep='\t',
-        index_col=False
-    ).drop(columns=['i'])
-    
-    og_val = pd.read_csv(
-        f'{val_path}/val_combined.tsv',
-        sep='\t',
-        index_col=False
-    ).drop(columns=['i'])
-    
-    weak = weak.drop(weak[weak['id'].isin(og['id'])].index)
-    weak = weak.drop(weak[weak['id'].isin(og_val['id'])].index)
-    
-    val_ratio = 0.2 # len(og_val) / len(og)
-    
+        index_col=False,
+        names=['i', 'id', 'src', 'content', 'label']
+    )
+    # .drop(columns=['i'])
+
+    # og_val = pd.read_csv(
+    #     f'{val_path}/val_combined.tsv',
+    #     sep='\t',
+    #     index_col=False
+    # ).drop(columns=['i'])
+
+    # weak = weak.drop(weak[weak['id'].isin(og['id'])].index)
+    # weak = weak.drop(weak[weak['id'].isin(og_val['id'])].index)
+    print(og)
+    val_ratio = 0.2  # len(og_val) / len(og)
+
     og_p = og[og['label'] == 1]
     og_n = og[og['label'] == 0]
-    
+
+    print(len(og))
+    print(len(og_p) / len(og))
+    exit()
+
     weak_p = weak[weak['label'] == 1]
     weak_n = weak[weak['label'] == 0]
-    
-    if merge_type == 'balanced_original':   
+
+    if merge_type == 'balanced_original':
         weak_p = weak_p.sample(n=abs(len(og_n) - len(og_p)), ignore_index=True, axis=0, random_state=rs)
-        
+
         return pd.concat([og, weak_p]).sample(frac=1.0, ignore_index=True, axis=0, random_state=rs), None
-        
+
     if merge_type == 'simple':
         # positive class ratio after concat: 0.1928211714604387
         # len after concat: 177522
         final = pd.concat([og, weak])
-    
+
     if merge_type == 'balanced_weak':
         # positive class ratio after concat: 0.43084242721746024
         # len after concat: 79449
         weak_n = weak_n.sample(n=len(weak_p), ignore_index=True, axis=0, random_state=rs)
         final = pd.concat([og, weak_p, weak_n])
-    
+
     if merge_type == 'balanced_result':
         # positive class ratio after concat: 0.5
         # len after concat: 68460
         len_p_comb = len(og_p) + len(weak_p)
         weak_n = weak_n.sample(n=abs(len_p_comb - len(og_n)), ignore_index=True, axis=0, random_state=rs)
-        
+
         final = pd.concat([og, weak_p, weak_n])
-    
+
     final = final.sample(frac=1.0, ignore_index=True, axis=0, random_state=rs)
     final_p = final[final['label'] == 1]
     final_n = final[final['label'] == 0]
@@ -377,9 +383,10 @@ def weak_data_merge(merge_type='simple', rs=22):
     final = final[~final['id'].isin(val['id'])].reset_index(drop=True)
 
     return final, val
-        
+
 
 # print(len(weak_data_merge(merge_type='simple')))
+weak_data_merge()
 # x, y = weak_data_merge(merge_type='balanced_original') # balanced_weak
 
 # print(len(x))
